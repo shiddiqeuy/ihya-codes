@@ -1303,13 +1303,15 @@ function completeChapter(chId) {
 // ============================================================
 function setBimoHelper(msg) {
   const el = document.getElementById('bimo-helper');
-  document.getElementById('bimo-helper-text').textContent = msg;
+  const textEl = document.getElementById('bimo-helper-text');
+  if (textEl) textEl.textContent = msg;
   if (el) {
     el.classList.remove('hidden');
     el.style.animation = 'none';
     el.offsetWidth; // trigger reflow
     el.style.animation = 'result-pop 0.35s var(--ease-bounce)';
   }
+  speakText(msg);
 }
 
 // ============================================================
@@ -1317,8 +1319,15 @@ function setBimoHelper(msg) {
 // ============================================================
 function toggleParentTip() {
   const panel = document.getElementById('parent-tip-panel');
+  if (!panel) return;
   panel.classList.toggle('hidden');
   playClick();
+  if (!panel.classList.contains('hidden')) {
+    const content = document.getElementById('parent-tip-content');
+    if (content && content.textContent) {
+      speakText('Panduan Orang Tua: ' + content.textContent);
+    }
+  }
 }
 
 // ============================================================
@@ -1958,8 +1967,9 @@ function loadChapter3(container) {
   const s2 = makeScene('ch3-s2', 'ch3-scene');
   s2.innerHTML = `
     <h2 class="scene-title">🔊 Pilih Hewan &amp; Tekan Tombol!</h2>
-    <p class="scene-subtitle">Tekan tombol hewan — lalu lihat blok kode terbentuk!</p>
+    <p class="scene-subtitle">Isi fungsi &amp; perintah suara hewan — lalu uji kodenya!</p>
     <div id="ch3-fillin-container" style="width:100%;display:flex;flex-direction:column;align-items:center;gap:16px;margin-top:20px"></div>
+    <div id="ch3-output" class="result-shout hidden" style="margin-top:14px;font-size:36px;font-family:var(--font-display);text-align:center;color:#FF8C42"></div>
     <div class="scene-nav" id="ch3-next-nav" style="display:none;margin-top:16px">
       <button class="cta-primary" onclick="ch3Next(3)">
         <span class="btn-icon">✨</span> Lihat Tombol Ajaibnya!
@@ -1969,14 +1979,16 @@ function loadChapter3(container) {
   // Build grid
   container.appendChild(s2);
   const grid = s2.querySelector('#ch3-grid');
-  ANIMAL_SOUNDS.forEach(a => {
-    const btn = document.createElement('button');
-    btn.className = 'animal-sound-btn';
-    btn.setAttribute('aria-label', `${a.name} bersuara ${a.sound}`);
-    btn.innerHTML = `<span>${a.emoji}</span><span class="sound-name">${a.name}</span><span class="sound-text">${a.sound}</span>`;
-    btn.addEventListener('click', () => ch3PlaySound(a));
-    grid.appendChild(btn);
-  });
+  if (grid) {
+    ANIMAL_SOUNDS.forEach(a => {
+      const btn = document.createElement('button');
+      btn.className = 'animal-sound-btn';
+      btn.setAttribute('aria-label', `${a.name} bersuara ${a.sound}`);
+      btn.innerHTML = `<span>${a.emoji}</span><span class="sound-name">${a.name}</span><span class="sound-text">${a.sound}</span>`;
+      btn.addEventListener('click', () => ch3PlaySound(a));
+      grid.appendChild(btn);
+    });
+  }
 
   const s3 = makeScene('ch3-s3', 'ch3-scene');
   s3.innerHTML = `
@@ -2041,6 +2053,7 @@ function ch3Next(scene) {
         }
         const nextNav = document.getElementById('ch3-next-nav');
         if (nextNav) nextNav.style.display = 'flex';
+        setBimoHelper(`🎉 Hore! Fungsi ${animal.name} ${animal.emoji} ${animal.sound} berhasil dibuat! Pencet tombol Lanjut! 🚀`);
       }
     });
   }
