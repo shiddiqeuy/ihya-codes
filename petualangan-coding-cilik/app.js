@@ -9,6 +9,7 @@
 // STATE
 // ============================================================
 const STATE = {
+  activeProfileId: 'profile_1',
   childName: '',
   currentChapter: null,
   currentScene: 0,
@@ -21,80 +22,141 @@ const STATE = {
   trainPassengers: [],
   chosenRobotName: 'BIMO',
   muted: false,
-  finalProjectDone: false
+  speechEnabled: true,
+  finalProjectDone: false,
+  unlockedStickers: [],
+  toddlerLevels: { seq: 1, decomp: 1, pattern: 1, sort: 1, logic: 1 }
 };
 
 // ============================================================
-// AUDIO (Web Audio API — simple tones)
+// AUDIO & WEB SPEECH API (TTS Narator BIMO Bahasa Indonesia)
 // ============================================================
 let audioCtx = null;
+let idVoice = null;
 
-function getAudioCtx() {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume().catch(() => {});
+function initSpeechSynthesis() {
+  if ('speechSynthesis' in window) {
+    const updateVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+      idVoice = voices.find(v => v.lang.startsWith('id') || v.lang.startsWith('ind')) || voices[0];
+    };
+    updateVoices();
+    if (window.speechSynthesis.onvoiceschanged !== undefined) {
+      window.speechSynthesis.onvoiceschanged = updateVoices;
+    }
   }
-  return audioCtx;
 }
+initSpeechSynthesis();
 
-function escapeHTML(str) {
-  return String(str || '')
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
-}
-
-function playTone(freq, type = 'sine', duration = 0.15, vol = 0.2) {
-  if (STATE.muted) return;
+function speakText(text) {
+  if (STATE.muted || !STATE.speechEnabled || !('speechSynthesis' in window)) return;
   try {
-    const ctx = getAudioCtx();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = type;
-    osc.frequency.value = freq;
-    gain.gain.setValueAtTime(vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
-    osc.start();
-    osc.stop(ctx.currentTime + duration);
-  } catch (e) { /* silent fail */ }
+    window.speechSynthesis.cancel();
+    const cleanText = String(text || '').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
+    if (!cleanText.trim()) return;
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = 'id-ID';
+    utterance.rate = 0.95;
+    utterance.pitch = 1.1; // Bouncy cheerful robot voice
+    if (idVoice) utterance.voice = idVoice;
+    window.speechSynthesis.speak(utterance);
+  } catch (e) { /* silent fallback */ }
 }
 
-function playSuccess() {
-  if (STATE.muted) return;
-  [523, 659, 784, 1047].forEach((f, i) => {
-    setTimeout(() => playTone(f, 'sine', 0.2, 0.25), i * 100);
-  });
-}
-
-function playClick() { playTone(600, 'sine', 0.08, 0.15); }
-function playError() {
-  [250, 200].forEach((f, i) => setTimeout(() => playTone(f, 'sawtooth', 0.1, 0.15), i * 100));
-}
-function playStar() {
-  [880, 1108, 1319].forEach((f, i) => setTimeout(() => playTone(f, 'sine', 0.15, 0.3), i * 80));
-}
-function playPop() { playTone(440, 'sine', 0.1, 0.2); }
-
-// ============================================================
-// MUTE
-// ============================================================
-document.getElementById('btn-mute').addEventListener('click', () => {
-  STATE.muted = !STATE.muted;
-  document.getElementById('btn-mute').textContent = STATE.muted ? '🔇' : '🔊';
+function toggleSpeech() {
+  STATE.speechEnabled = !STATE.speechEnabled;
+  const btn = document.getElementById('btn-speech');
+  if (btn) {
+    btn.classList.toggle('active', STATE.speechEnabled);
+    btn.textContent = STATE.speechEnabled ? '🗣️' : '😶';
+  }
+  if (STATE.speechEnabled) speakText('Narasi suara BIMO aktif!');
+  else if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   saveProgress();
-});
+}
 
 // ============================================================
-// SAVE / LOAD PROGRESS
+// MULTI-PROFIL LOCAL STORAGE ENGINE
 // ============================================================
-const SAVE_KEY = 'petualangan_coding_v1';
+const PROFILES_KEY = 'petualangan_coding_profiles_v2';
+
+function getProfilesData() {
+  try {
+    const raw = localStorage.getItem(PROFILES_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return {
+    activeId: 'profile_1',
+    profiles: {
+      'profile_1': { id: 'profile_1', name: 'Si Kecil', data: {} }
+    }
+  };
+}
+
+function saveProfilesData(store) {
+  try { localStorage.setItem(PROFILES_KEY, JSON.stringify(store)); } catch(e) {}
+}
+
+function renderProfilePills() {
+  const container = document.getElementById('profile-pills-row');
+  if (!container) return;
+  const store = getProfilesData();
+  const list = Object.values(store.profiles || {});
+
+  let html = list.map(p => `
+    <button class="profile-pill ${p.id === store.activeId ? 'active' : ''}" onclick="switchProfile('${p.id}')">
+      👤 ${escapeHTML(p.name || 'Si Kecil')}
+    </button>
+  `).join('');
+
+  if (list.length < 3) {
+    html += `
+      <button class="profile-pill profile-pill-add" onclick="createNewProfile()">
+        ➕ Tambah Profil
+      </button>
+    `;
+  }
+  container.innerHTML = html;
+}
+
+function switchProfile(profileId) {
+  playClick();
+  const store = getProfilesData();
+  if (store.profiles[profileId]) {
+    store.activeId = profileId;
+    saveProfilesData(store);
+    STATE.activeProfileId = profileId;
+    loadProgress();
+    document.getElementById('child-name-input').value = STATE.childName;
+    renderProfilePills();
+    speakText(`Profil ${STATE.childName} aktif!`);
+  }
+}
+
+function createNewProfile() {
+  playClick();
+  const newName = prompt('Masukkan nama profil anak (misal: Adik / Kakak):', 'Profil Baru');
+  if (!newName || !newName.trim()) return;
+  const store = getProfilesData();
+  const newId = 'profile_' + Date.now();
+  store.profiles[newId] = {
+    id: newId,
+    name: newName.trim(),
+    data: { childName: newName.trim() }
+  };
+  store.activeId = newId;
+  saveProfilesData(store);
+  STATE.activeProfileId = newId;
+  loadProgress();
+  document.getElementById('child-name-input').value = STATE.childName;
+  renderProfilePills();
+  speakText(`Selamat datang ${STATE.childName}!`);
+}
 
 function saveProgress() {
-  const data = {
+  const store = getProfilesData();
+  const activeId = store.activeId || STATE.activeProfileId || 'profile_1';
+  const profileData = {
     childName:         STATE.childName,
     completedChapters: STATE.completedChapters,
     starsPerChapter:   STATE.starsPerChapter,
@@ -105,20 +167,30 @@ function saveProgress() {
     trainPassengers:   STATE.trainPassengers,
     chosenRobotName:   STATE.chosenRobotName,
     muted:             STATE.muted,
+    speechEnabled:     STATE.speechEnabled,
     finalProjectDone:  STATE.finalProjectDone,
     unlockedStickers:  STATE.unlockedStickers || [],
     toddlerLevels:     STATE.toddlerLevels || { seq: 1, decomp: 1, pattern: 1, sort: 1, logic: 1 }
   };
-  try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
+
+  if (!store.profiles[activeId]) {
+    store.profiles[activeId] = { id: activeId, name: STATE.childName || 'Si Kecil', data: {} };
+  }
+  store.profiles[activeId].name = STATE.childName || 'Si Kecil';
+  store.profiles[activeId].data = profileData;
+  saveProfilesData(store);
 }
 
 function loadProgress() {
   try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    if (!raw) return false;
-    const d = JSON.parse(raw);
+    const store = getProfilesData();
+    const activeId = store.activeId || 'profile_1';
+    STATE.activeProfileId = activeId;
+    const p = store.profiles[activeId];
+    if (!p || !p.data) return false;
+    const d = p.data;
     Object.assign(STATE, {
-      childName:         d.childName         || '',
+      childName:         d.childName         || p.name || '',
       completedChapters: d.completedChapters || [],
       starsPerChapter:   d.starsPerChapter   || {},
       totalStars:        d.totalStars        || 0,
@@ -128,6 +200,7 @@ function loadProgress() {
       trainPassengers:   d.trainPassengers   || [],
       chosenRobotName:   d.chosenRobotName   || 'BIMO',
       muted:             d.muted             || false,
+      speechEnabled:     d.speechEnabled     !== false,
       finalProjectDone:  d.finalProjectDone  || false,
       unlockedStickers:  d.unlockedStickers  || [],
       toddlerLevels:     d.toddlerLevels     || { seq: 1, decomp: 1, pattern: 1, sort: 1, logic: 1 }
@@ -3210,6 +3283,156 @@ function legoListAdd(id, itemName) {
 }
 
 // ============================================================
+// HTML5 CANVAS EXPORT ENGINE (Sertifikat & Buku Stiker PNG)
+// ============================================================
+function exportCertificatePNG() {
+  playSuccess();
+  speakText('Mengunduh Sertifikat Petualang!');
+  const canvas = document.createElement('canvas');
+  canvas.width = 1200;
+  canvas.height = 800;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 1200, 800);
+  grad.addColorStop(0, '#1A2C5B');
+  grad.addColorStop(0.5, '#2E4A8C');
+  grad.addColorStop(1, '#6B95D6');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1200, 800);
+
+  // Border Gold
+  ctx.strokeStyle = '#FFD85C';
+  ctx.lineWidth = 16;
+  ctx.strokeRect(30, 30, 1140, 740);
+
+  // Inner Card
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(60, 60, 1080, 680, 30);
+  else ctx.rect(60, 60, 1080, 680);
+  ctx.fill();
+
+  // Stars
+  ctx.font = '40px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('⭐ ⭐ ⭐ ⭐ ⭐', 600, 140);
+
+  // Title
+  ctx.fillStyle = '#1A2C5B';
+  ctx.font = 'bold 52px sans-serif';
+  ctx.fillText('🏆 PETUALANG CODING CILIK', 600, 220);
+
+  // Label
+  ctx.fillStyle = '#666666';
+  ctx.font = '28px sans-serif';
+  ctx.fillText('Sertifikat ini diberikan kepada:', 600, 290);
+
+  // Name
+  ctx.fillStyle = '#FF8C42';
+  ctx.font = 'bold 60px sans-serif';
+  ctx.fillText(STATE.childName || 'Si Kecil', 600, 380);
+
+  // Desc
+  ctx.fillStyle = '#2D2D2D';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.fillText('Telah berhasil membantu Robot BIMO', 600, 460);
+  ctx.fillText('menyelesaikan Petualangan Coding Pertamanya! 🚀', 600, 510);
+
+  // Stars Total
+  ctx.fillStyle = '#5A3000';
+  ctx.font = 'bold 34px sans-serif';
+  ctx.fillText(`⭐ Total Bintang: ${STATE.totalStars}`, 600, 610);
+
+  // Footer Branding
+  ctx.fillStyle = '#888888';
+  ctx.font = '22px sans-serif';
+  ctx.fillText('Petualangan Coding Cilik — shiddiqeuy/ihya-codes', 600, 680);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `Sertifikat_Coding_${(STATE.childName||'Cilik').replace(/\s+/g, '_')}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+function exportStickerBookPNG() {
+  playSuccess();
+  speakText('Mengunduh Album Stiker BIMO!');
+  const canvas = document.createElement('canvas');
+  canvas.width = 1000;
+  canvas.height = 900;
+  const ctx = canvas.getContext('2d');
+
+  // Background
+  const grad = ctx.createLinearGradient(0, 0, 1000, 900);
+  grad.addColorStop(0, '#FFF5E4');
+  grad.addColorStop(1, '#E3F2FD');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 1000, 900);
+
+  // Title
+  ctx.fillStyle = '#5A3000';
+  ctx.font = 'bold 44px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('📖 BUKU STIKER DIGITAL BIMO', 500, 80);
+
+  ctx.fillStyle = '#FF8C42';
+  ctx.font = 'bold 28px sans-serif';
+  ctx.fillText(`Koleksi Stiker: ${STATE.childName || 'Si Kecil'} (${(STATE.unlockedStickers||[]).length}/15)`, 500, 130);
+
+  // Draw Grid of 15 Stickers
+  const unlocked = STATE.unlockedStickers || [];
+  const cols = 5;
+  const itemW = 160;
+  const itemH = 180;
+  const startX = 60;
+  const startY = 170;
+  const gapX = 24;
+  const gapY = 24;
+
+  TODDLER_STICKERS.forEach((st, idx) => {
+    const col = idx % cols;
+    const row = Math.floor(idx / cols);
+    const x = startX + col * (itemW + gapX);
+    const y = startY + row * (itemH + gapY);
+
+    const isUnlocked = unlocked.includes(st.id);
+
+    // Box
+    ctx.fillStyle = isUnlocked ? '#FFF8EC' : '#F5F5F5';
+    ctx.strokeStyle = isUnlocked ? '#FF8C42' : '#DDDDDD';
+    ctx.lineWidth = 4;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, itemW, itemH, 20);
+    else ctx.rect(x, y, itemW, itemH);
+    ctx.fill();
+    ctx.stroke();
+
+    // Emoji
+    ctx.font = '50px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(isUnlocked ? st.emoji : '🔒', x + itemW / 2, y + 85);
+
+    // Title
+    ctx.fillStyle = isUnlocked ? '#5A3000' : '#888888';
+    ctx.font = 'bold 16px sans-serif';
+    ctx.fillText(st.title, x + itemW / 2, y + 145);
+  });
+
+  // Footer
+  ctx.fillStyle = '#888888';
+  ctx.font = '20px sans-serif';
+  ctx.fillText('Petualangan Coding Cilik — shiddiqeuy/ihya-codes', 500, 860);
+
+  // Download
+  const link = document.createElement('a');
+  link.download = `Album_Stiker_${(STATE.childName||'Cilik').replace(/\s+/g, '_')}.png`;
+  link.href = canvas.toDataURL('image/png');
+  link.click();
+}
+
+// ============================================================
 // INIT
 // ============================================================
 function init() {
@@ -3219,17 +3442,20 @@ function init() {
     document.getElementById('btn-mute').textContent = '🔇';
   }
 
+  const speechBtn = document.getElementById('btn-speech');
+  if (speechBtn) speechBtn.classList.toggle('active', STATE.speechEnabled);
+
+  renderProfilePills();
+
   if (hasSave) {
-    // Resume progress
     document.getElementById('child-name-input').value = STATE.childName;
-    // Still show welcome so they confirm name
     showScreen('screen-welcome');
   } else {
     showScreen('screen-welcome');
   }
 }
 
-// Go to map (exposed globally for HTML onclick)
+// Global window bindings
 window.goToMap = goToMap;
 window.startAdventure = startAdventure;
 window.startChapter = startChapter;
@@ -3239,6 +3465,13 @@ window.showBugMonster = showBugMonster;
 window.dismissBug = dismissBug;
 window.showCertificate = showCertificate;
 window.printCertificate = function() { window.print(); };
+
+// Narration & Profiles & Canvas Exports
+window.toggleSpeech = toggleSpeech;
+window.switchProfile = switchProfile;
+window.createNewProfile = createNewProfile;
+window.exportCertificatePNG = exportCertificatePNG;
+window.exportStickerBookPNG = exportStickerBookPNG;
 
 // Chapter 1
 window.ch1Next = ch1Next;

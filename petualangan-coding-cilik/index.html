@@ -11,8 +11,11 @@
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <!-- MUTE BUTTON (always visible) -->
-  <button id="btn-mute" class="mute-btn" aria-label="Toggle sound" title="Suara">🔊</button>
+  <!-- TOP FIXED CONTROLS (MUTE & SPEECH) -->
+  <div class="top-controls-bar">
+    <button id="btn-speech" class="mute-btn speech-btn" onclick="toggleSpeech()" aria-label="Toggle Narasi Suara BIMO" title="Narasi Suara BIMO">🗣️</button>
+    <button id="btn-mute" class="mute-btn" aria-label="Toggle sound" title="Suara">🔊</button>
+  </div>
 
   <!-- SCREEN: WELCOME -->
   <div id="screen-welcome" class="screen active">
@@ -51,7 +54,14 @@
           </div>
         </div>
         <div class="name-entry" id="name-entry-block">
-          <p class="name-prompt">✏️ Siapa nama kamu?</p>
+          <div class="profile-selector-container" style="width:100%">
+            <p class="profile-label" style="color:white;font-family:var(--font-display);font-size:16px;margin-bottom:8px">👥 Pilih Profil Anak:</p>
+            <div id="profile-pills-row" class="profile-pills-row" style="display:flex;gap:8px;overflow-x:auto;width:100%;padding-bottom:4px">
+              <!-- Profile pills injected by JS -->
+            </div>
+          </div>
+
+          <p class="name-prompt" style="margin-top:10px">✏️ Siapa nama kamu?</p>
           <div class="name-input-row">
             <input type="text" id="child-name-input" placeholder="Ketik namamu di sini..." maxlength="20" autocomplete="off" aria-label="Nama anak" />
           </div>
@@ -68,7 +78,7 @@
           <button id="btn-start" class="cta-primary pulse-btn" style="margin-top:14px" onclick="startAdventure()">
             <span class="btn-icon">🚀</span> Mulai Petualangan!
           </button>
-          <p class="parent-note">💛 <strong>Ayah &amp; Bunda:</strong> Pilih mode usia Si Kecil lalu klik tombol di atas!</p>
+          <p class="parent-note">💛 <strong>Ayah &amp; Bunda:</strong> Pilih profil &amp; mode usia Si Kecil lalu klik tombol di atas!</p>
         </div>
       </div>
     </div>
@@ -119,7 +129,10 @@
     <div class="modal-card sticker-modal-card">
       <div class="modal-header">
         <h3>📖 Buku Stiker Digital BIMO</h3>
-        <button class="close-modal-btn" onclick="closeStickerBook()">✖</button>
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="cta-secondary" style="min-height:36px;padding:4px 12px;font-size:13px" onclick="exportStickerBookPNG()">📸 Simpan PNG</button>
+          <button class="close-modal-btn" onclick="closeStickerBook()">✖</button>
+        </div>
       </div>
       <p class="sticker-subtext">Kumpulkan 15 stiker komputasi ajaib dari setiap level balita! 🌟</p>
       <div id="sticker-grid" class="sticker-grid">
@@ -199,7 +212,8 @@
         </div>
         <div class="cert-footer">
           <button class="cta-primary" onclick="restartAdventure()">🔄 Mulai Lagi</button>
-          <button class="cta-secondary" onclick="printCertificate()">🖨️ Cetak / Simpan</button>
+          <button class="cta-secondary" onclick="exportCertificatePNG()">📸 Unduh Gambar PNG</button>
+          <button class="cta-secondary" onclick="printCertificate()">🖨️ Cetak</button>
           <button class="cta-secondary" onclick="goToMap()">🗺️ Lihat Peta</button>
         </div>
       </div>

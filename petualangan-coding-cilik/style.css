@@ -70,25 +70,66 @@ html, body {
 }
 .screen.active { display: flex; flex-direction: column; }
 
-/* === MUTE BUTTON === */
-.mute-btn {
+/* === TOP CONTROLS BAR (MUTE & SPEECH) === */
+.top-controls-bar {
   position: fixed;
   top: 16px;
   right: 16px;
   z-index: 9999;
-  background: rgba(255,255,255,0.85);
-  border: none;
+  display: flex;
+  gap: 10px;
+}
+
+.mute-btn {
+  background: rgba(255,255,255,0.88);
+  border: 2px solid rgba(255,255,255,0.5);
   border-radius: 50%;
-  width: 52px;
-  height: 52px;
+  width: 50px;
+  height: 50px;
   font-size: 22px;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.12);
-  transition: transform 0.2s var(--ease-bounce), box-shadow 0.2s;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  transition: transform 0.2s var(--ease-bounce), box-shadow 0.2s, background 0.2s;
   backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
-.mute-btn:hover { transform: scale(1.12); box-shadow: 0 6px 18px rgba(0,0,0,0.16); }
+.mute-btn:hover { transform: scale(1.12); box-shadow: 0 6px 18px rgba(0,0,0,0.2); }
 .mute-btn:active { transform: scale(0.94); }
+
+.speech-btn.active {
+  background: #FFD85C;
+  border-color: #FFA800;
+  box-shadow: 0 0 16px rgba(255, 216, 92, 0.7);
+}
+
+.profile-pill {
+  background: rgba(255,255,255,0.18);
+  border: 2px solid rgba(255,255,255,0.35);
+  border-radius: 16px;
+  padding: 8px 14px;
+  color: white;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-bounce);
+  white-space: nowrap;
+}
+.profile-pill:hover { background: rgba(255,255,255,0.3); transform: translateY(-2px); }
+.profile-pill.active {
+  background: #5BB8F5;
+  color: white;
+  border-color: white;
+  box-shadow: 0 4px 12px rgba(91, 184, 245, 0.4);
+  transform: scale(1.04);
+}
+.profile-pill-add {
+  background: rgba(255,216,92,0.25);
+  border: 2px dashed #FFD85C;
+  color: #FFD85C;
+}
 
 /* ============================================================
    WELCOME SCREEN
