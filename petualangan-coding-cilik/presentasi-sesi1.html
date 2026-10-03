@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Slide Presentasi Sesi 1 (90 Menit) 🚀 | Petualangan Coding Cilik</title>
+  <meta name="description" content="Slide Presentasi Interaktif Sesi 1 (90 Menit) - Petualangan Coding Cilik bersama Robot BIMO untuk Anak Usia Dini & Orang Tua." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --sun-yellow:  #FFD85C;
+      --sky-blue:    #5BB8F5;
+      --grass-green: #5CC86A;
+      --orange:      #FF8C42;
+      --purple:      #A882F0;
+      --dark-blue:   #1A2C5B;
+      --cream:       #FFF8EC;
+      --font-title:  'Fredoka One', cursive;
+      --font-body:   'Nunito', sans-serif;
+    }
+    html, body {
+      height: 100%;
+      font-family: var(--font-body);
+      background: #0F172A;
+      color: #F8FAFC;
+      overflow: hidden;
+    }
+
+    /* SLIDE STAGE */
+    .deck-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .slide {
+      display: none;
+      flex: 1;
+      padding: 40px 60px;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      background: linear-gradient(135deg, #1E293B 0%, #0F172A 100%);
+      position: relative;
+      animation: fadeIn 0.4s ease-out;
+    }
+    .slide.active { display: flex; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: scale(0.97); }
+      to { opacity: 1; transform: scale(1); }
+    }
+
+    /* NAVIGATION HEADER */
+    .deck-header {
+      position: absolute;
+      top: 20px;
+      left: 30px;
+      right: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+    .deck-badge {
+      background: rgba(255, 216, 92, 0.2);
+      border: 2px solid var(--sun-yellow);
+      color: var(--sun-yellow);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-family: var(--font-title);
+      font-size: 16px;
+    }
+    .deck-counter {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-size: 16px;
+    }
+
+    /* SLIDE CONTENT STYLES */
+    .slide-title {
+      font-family: var(--font-title);
+      font-size: clamp(32px, 5vw, 56px);
+      color: var(--sun-yellow);
+      line-height: 1.2;
+      margin-bottom: 16px;
+      text-shadow: 0 4px 16px rgba(255, 216, 92, 0.3);
+    }
+    .slide-subtitle {
+      font-size: clamp(18px, 2.5vw, 26px);
+      color: #94A3B8;
+      font-weight: 700;
+      max-width: 800px;
+      line-height: 1.5;
+      margin-bottom: 30px;
+    }
+    .slide-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 20px;
+      width: 100%;
+      max-width: 1000px;
+      margin-top: 20px;
+    }
+    .slide-card {
+      background: rgba(255, 255, 255, 0.06);
+      border: 2px solid rgba(255, 255, 255, 0.12);
+      border-radius: 24px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s;
+    }
+    .slide-card:hover {
+      background: rgba(255, 255, 255, 0.12);
+      transform: translateY(-5px);
+      border-color: var(--sun-yellow);
+    }
+    .card-icon { font-size: 48px; }
+    .card-title { font-family: var(--font-title); font-size: 20px; color: white; }
+    .card-desc { font-size: 15px; color: #CBD5E1; line-height: 1.5; }
+
+    .agenda-timeline {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      width: 100%;
+      max-width: 850px;
+      text-align: left;
+    }
+    .agenda-item {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      background: rgba(255,255,255,0.06);
+      padding: 16px 24px;
+      border-radius: 20px;
+      border-left: 6px solid var(--sky-blue);
+    }
+    .agenda-time {
+      font-family: var(--font-title);
+      font-size: 18px;
+      color: var(--sun-yellow);
+      min-width: 140px;
+    }
+    .agenda-text { font-size: 18px; font-weight: 700; color: white; flex: 1; }
+
+    /* FOOTER CONTROL BAR */
+    .deck-footer {
+      position: absolute;
+      bottom: 20px;
+      left: 30px;
+      right: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      z-index: 100;
+    }
+    .control-btn {
+      background: linear-gradient(135deg, var(--sun-yellow), var(--orange));
+      color: #5A3000;
+      border: none;
+      border-radius: 18px;
+      padding: 12px 28px;
+      font-family: var(--font-title);
+      font-size: 18px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(255, 140, 66, 0.4);
+      transition: all 0.2s;
+    }
+    .control-btn:hover { transform: scale(1.05); }
+    .control-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+    .progress-bar-wrap {
+      flex: 1;
+      max-width: 400px;
+      height: 10px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 5px;
+      overflow: hidden;
+      margin: 0 20px;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--sky-blue), var(--sun-yellow));
+      width: 10%;
+      transition: width 0.3s;
+    }
+  </style>
+</head>
+<body>
+  <div class="deck-container">
+    <!-- Header -->
+    <div class="deck-header">
+      <div class="deck-badge">🤖 Petualangan Coding Cilik</div>
+      <div class="deck-counter" id="slide-counter">Slide 1 / 8</div>
+    </div>
+
+    <!-- SLIDE 1: JUDUL UTAMA -->
+    <div class="slide active" id="slide-1">
+      <div style="font-size:64px;margin-bottom:10px">🚀✨🤖</div>
+      <h1 class="slide-title">Petualangan Coding Cilik</h1>
+      <p class="slide-subtitle">Sesi 1 (90 Menit): Berpikir Seperti Robot BIMO — Dari Instruksi Sehari-hari ke Kode Pertama! 💛</p>
+      <div style="display:flex;gap:16px;margin-top:10px">
+        <span style="background:rgba(92,200,106,0.2);color:#4ADE80;padding:8px 20px;border-radius:20px;font-weight:800">Target Usia: 2–7 Tahun</span>
+        <span style="background:rgba(91,184,245,0.2);color:#60A5FA;padding:8px 20px;border-radius:20px;font-weight:800">Pendamping: Ayah &amp; Bunda</span>
+      </div>
+    </div>
+
+    <!-- SLIDE 2: AGENDA WORKSHOP (90 MENIT) -->
+    <div class="slide" id="slide-2">
+      <h2 class="slide-title">📅 Agenda Sesi 1 (90 Menit)</h2>
+      <div class="agenda-timeline">
+        <div class="agenda-item" style="border-color:var(--sun-yellow)">
+          <div class="agenda-time">00:00 - 00:10 (10m)</div>
+          <div class="agenda-text">👋 Ice Breaking: Game "Robot Ayah &amp; Bunda" &amp; Menyapa BIMO</div>
+        </div>
+        <div class="agenda-item" style="border-color:var(--sky-blue)">
+          <div class="agenda-time">00:10 - 00:25 (15m)</div>
+          <div class="agenda-text">🚿 Konsep 1: Perintah &amp; Urutan (Sabun 🧼 ➔ Bilas 🚿 ➔ Handuk 🧺)</div>
+        </div>
+        <div class="agenda-item" style="border-color:var(--grass-green)">
+          <div class="agenda-time">00:25 - 00:40 (15m)</div>
+          <div class="agenda-text">🎮 Praktik Mandiri: Game Mandiin Bebek &amp; Robot Koki BIMO</div>
+        </div>
+        <div class="agenda-item" style="border-color:var(--orange)">
+          <div class="agenda-time">00:40 - 00:55 (15m)</div>
+          <div class="agenda-text">🏎️ Konsep 2: Dekomposisi (Rakit Mobil 🏎️ &amp; Rumah Idaman 🏡)</div>
+        </div>
+        <div class="agenda-item" style="border-color:var(--purple)">
+          <div class="agenda-time">00:55 - 01:25 (30m)</div>
+          <div class="agenda-text">🧩 Tantangan Kode Python Pertama &amp; Perburuan Buku Stiker Digital</div>
+        </div>
+        <div class="agenda-item" style="border-color:var(--sun-yellow)">
+          <div class="agenda-time">01:25 - 01:30 (5m)</div>
+          <div class="agenda-text">🏆 Selebrasi Bintang, Sertifikat &amp; Tips Rumah untuk Ayah &amp; Bunda</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 3: ICE BREAKING - GAME ROBOT AYAH & BUNDA -->
+    <div class="slide" id="slide-3">
+      <h2 class="slide-title">🤖 Game Physical: Robot Ayah &amp; Bunda!</h2>
+      <p class="slide-subtitle">Sebelum menyentuh layar, mari kita berpura-pura menjadi Komputer &amp; Robot!</p>
+      <div class="slide-card-grid">
+        <div class="slide-card">
+          <div class="card-icon">👧👦</div>
+          <div class="card-title">1. Anak = Programmer</div>
+          <div class="card-desc">Si Kecil memberikan instruksi kata per kata dengan jelas.</div>
+        </div>
+        <div class="slide-card">
+          <div class="card-icon">👨‍👩‍👧</div>
+          <div class="card-title">2. Orang Tua = Robot</div>
+          <div class="card-desc">Ayah/Bunda bergerak HANYA sesuai instruksi persis yang diucapkan!</div>
+        </div>
+        <div class="slide-card">
+          <div class="card-icon">🎯</div>
+          <div class="card-title">3. Contoh Perintah</div>
+          <div class="card-desc">"Maju 2 langkah!", "Putar badan!", "Angkat tangan kanan!"</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 4: KONSEP 1 - URUTAN (SEQUENCE) -->
+    <div class="slide" id="slide-4">
+      <h2 class="slide-title">🚿 Konsep 1: Urutan (Algorithm &amp; Sequence)</h2>
+      <p class="slide-subtitle">Komputer itu sangat pintar, tapi dia butuh instruksi berurutan dari awal sampai akhir!</p>
+      <div class="slide-card-grid">
+        <div class="slide-card" style="border-color:#4ADE80">
+          <div class="card-icon">🧼</div>
+          <div class="card-title">Langkah 1: Sabun</div>
+          <div class="card-desc">Beri sabun wangi ke bebek kotor dulu!</div>
+        </div>
+        <div class="slide-card" style="border-color:#60A5FA">
+          <div class="card-icon">🚿</div>
+          <div class="card-title">Langkah 2: Bilas</div>
+          <div class="card-desc">Bilas dengan air bersih sampai busanya hilang!</div>
+        </div>
+        <div class="slide-card" style="border-color:#F43F5E">
+          <div class="card-icon">🧺</div>
+          <div class="card-title">Langkah 3: Handuk</div>
+          <div class="card-desc">Keringkan bebek dengan handuk lembut!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 5: KONSEP 2 - DEKOMPOSISI (DECOMPOSITION) -->
+    <div class="slide" id="slide-5">
+      <h2 class="slide-title">🏎️ Konsep 2: Dekomposisi (Decomposition)</h2>
+      <p class="slide-subtitle">Bagaimana cara merakit sesuatu yang besar? Pecah menjadi bagian-bagian kecil!</p>
+      <div class="slide-card-grid">
+        <div class="slide-card">
+          <div class="card-icon">🛞</div>
+          <div class="card-title">Bagian A: Roda</div>
+          <div class="card-desc">Agar mobil bisa berjalan mulus.</div>
+        </div>
+        <div class="slide-card">
+          <div class="card-icon">🏎️</div>
+          <div class="card-title">Bagian B: Body</div>
+          <div class="card-desc">Tempat pengemudi duduk nyaman.</div>
+        </div>
+        <div class="slide-card">
+          <div class="card-icon">💡</div>
+          <div class="card-title">Bagian C: Lampu</div>
+          <div class="card-desc">Penerang saat malam hari.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 6: PANDUAN AYAH & BUNDA (CO-PLAYING) -->
+    <div class="slide" id="slide-6">
+      <h2 class="slide-title">💛 Panduan Ayah &amp; Bunda (Co-Playing)</h2>
+      <p class="slide-subtitle">Bagaimana cara terbaik mendampingi Si Kecil belajar coding?</p>
+      <div class="slide-card-grid">
+        <div class="slide-card">
+          <div class="card-icon">💬</div>
+          <div class="card-title">Gunakan Dialog Lisan</div>
+          <div class="card-desc">Tanyakan: "Kenapa langkah ini duluan ya?" bukan langsung memberi jawaban.</div>
+        </div>
+        <div class="slide-card">
+          <div class="card-icon">🎉</div>
+          <div class="card-title">Rayakan Kesalahan</div>
+          <div class="card-desc">Jika salah, katakan: "Wah ada Bug Monster! Ayo kita cari sama-sama!"</div>
+        </div>
+        <div class="slide-card">
+          <div class="card-icon">🌟</div>
+          <div class="card-title">Pujian Usaha</div>
+          <div class="card-desc">Puji ketekunan Si Kecil dalam mencoba, bukan hanya hasil akhirnya.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 7: PRAKTIK INTERAKTIF APLIKASI -->
+    <div class="slide" id="slide-7">
+      <h2 class="slide-title">🎮 Waktunya Bermain di Aplikasi!</h2>
+      <p class="slide-subtitle">Buka aplikasi Petualangan Coding Cilik di laptop atau HP masing-masing!</p>
+      <div class="slide-card-grid">
+        <div class="slide-card">
+          <div class="card-icon">🐥</div>
+          <div class="card-title">Mode Balita (Usia 2-4)</div>
+          <div class="card-desc">Coba 5 Konsep Komputasi &amp; kumpulkan 15 Stiker Digital BIMO!</div>
+        </div>
+        <div class="slide-card">
+          <div class="card-icon">🤖</div>
+          <div class="card-title">Mode Anak (Usia 5-7)</div>
+          <div class="card-desc">Selesaikan Bab 1 Robot Koki hingga Bab 6 Kastil Bintang!</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SLIDE 8: SELEBRASI & SERTIFIKAT -->
+    <div class="slide" id="slide-8">
+      <div style="font-size:60px;margin-bottom:10px">🏆⭐⭐⭐⭐⭐</div>
+      <h1 class="slide-title">Hore! Kamu Luar Biasa!</h1>
+      <p class="slide-subtitle">Selamat! Si Kecil telah berhasil menyelesaikan Petualangan Coding Pertamanya!</p>
+      <div style="display:flex;gap:16px;margin-top:20px">
+        <button class="control-btn" onclick="window.open('index.html', '_blank')">🚀 Buka Game Aplikasi</button>
+      </div>
+    </div>
+
+    <!-- Footer Controls -->
+    <div class="deck-footer">
+      <button class="control-btn" id="prev-btn" onclick="changeSlide(-1)">⬅️ Sebelumnya</button>
+      <div class="progress-bar-wrap">
+        <div class="progress-fill" id="deck-progress"></div>
+      </div>
+      <button class="control-btn" id="next-btn" onclick="changeSlide(1)">Selanjutnya ➡️</button>
+    </div>
+  </div>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 8;
+
+    function updateDeck() {
+      document.querySelectorAll('.slide').forEach((s, idx) => {
+        s.classList.toggle('active', idx + 1 === currentSlide);
+      });
+      document.getElementById('slide-counter').textContent = `Slide ${currentSlide} / ${totalSlides}`;
+      document.getElementById('deck-progress').style.width = `${(currentSlide / totalSlides) * 100}%`;
+      document.getElementById('prev-btn').disabled = currentSlide === 1;
+      document.getElementById('next-btn').disabled = currentSlide === totalSlides;
+    }
+
+    function changeSlide(delta) {
+      currentSlide = Math.max(1, Math.min(totalSlides, currentSlide + delta));
+      updateDeck();
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === 'Space') changeSlide(1);
+      if (e.key === 'ArrowLeft') changeSlide(-1);
+    });
+
+    updateDeck();
+  </script>
+</body>
+</html>
