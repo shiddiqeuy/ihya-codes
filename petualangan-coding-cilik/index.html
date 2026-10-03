@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Petualangan Coding Cilik 🚀 | Belajar Coding Bersama BIMO</title>
+  <meta name="description" content="Petualangan Coding Cilik — belajar coding bersama Robot BIMO! Untuk anak usia 5-7 tahun. Menjelajahi perintah, kotak ajaib, tombol hewan, mesin senam, dan kereta pelangi!" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,400;0,600;0,700;0,800;0,900;1,700&family=Fredoka+One&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- MUTE BUTTON (always visible) -->
+  <button id="btn-mute" class="mute-btn" aria-label="Toggle sound" title="Suara">🔊</button>
+
+  <!-- SCREEN: WELCOME -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome-world">
+      <div class="stars-bg" aria-hidden="true"></div>
+      <div class="welcome-content">
+        <div class="welcome-title-block">
+          <div class="title-emoji-row" aria-hidden="true">🚀✨🤖</div>
+          <h1 class="welcome-title">Petualangan<br><span class="title-highlight">Coding Cilik</span></h1>
+          <p class="welcome-subtitle">Bantu Robot BIMO dalam petualangan seru!<br>Bersama Ayah &amp; Bunda 💛</p>
+        </div>
+        <div class="bimo-welcome" aria-label="Robot BIMO menyapa kamu!">
+          <div class="bimo-body bimo-bounce">
+            <div class="bimo-head">
+              <div class="bimo-antenna"></div>
+              <div class="bimo-eyes">
+                <div class="bimo-eye left-eye"><div class="bimo-pupil"></div></div>
+                <div class="bimo-eye right-eye"><div class="bimo-pupil"></div></div>
+              </div>
+              <div class="bimo-mouth happy"></div>
+            </div>
+            <div class="bimo-torso">
+              <div class="bimo-chest-light"></div>
+            </div>
+            <div class="bimo-arms">
+              <div class="bimo-arm left-arm"></div>
+              <div class="bimo-arm right-arm wave"></div>
+            </div>
+            <div class="bimo-legs">
+              <div class="bimo-leg"></div>
+              <div class="bimo-leg"></div>
+            </div>
+          </div>
+          <div class="speech-bubble welcome-bubble">
+            <p>Hai! Aku BIMO! 👋<br>Ayo kita mulai petualangan!</p>
+          </div>
+        </div>
+        <div class="name-entry" id="name-entry-block">
+          <p class="name-prompt">✏️ Siapa nama kamu?</p>
+          <div class="name-input-row">
+            <input type="text" id="child-name-input" placeholder="Ketik namamu di sini..." maxlength="20" autocomplete="off" aria-label="Nama anak" />
+          </div>
+          <button id="btn-start" class="cta-primary pulse-btn" onclick="startAdventure()">
+            <span class="btn-icon">🚀</span> Mulai Petualangan!
+          </button>
+          <p class="parent-note">💛 <strong>Ayah &amp; Bunda:</strong> Bantu Si Kecil mengetik namanya, lalu klik tombol di atas bersama-sama!</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: ADVENTURE MAP -->
+  <div id="screen-map" class="screen">
+    <div class="map-world">
+      <div class="map-header">
+        <div class="map-greeting">
+          <span id="map-child-name" class="map-name"></span>
+          <span class="map-stars-display">⭐ <span id="map-total-stars">0</span> bintang</span>
+        </div>
+        <h2 class="map-title">🗺️ Peta Petualangan</h2>
+      </div>
+      <div class="adventure-path">
+        <div class="path-container">
+          <div id="adventure-nodes" class="nodes-row"></div>
+        </div>
+      </div>
+      <div class="map-selected-info" id="map-selected-info">
+        <p class="select-prompt">👆 Pilih petualangan untuk dimulai!</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: CHAPTER (dynamic content injected by JS) -->
+  <div id="screen-chapter" class="screen">
+    <div class="chapter-header">
+      <button id="btn-back-map" class="back-btn" onclick="goToMap()" aria-label="Kembali ke peta">
+        🗺️ Peta
+      </button>
+      <div class="chapter-progress-bar" role="progressbar" aria-label="Progress bab">
+        <div id="chapter-progress-fill" class="progress-fill"></div>
+      </div>
+      <div class="chapter-stars-display">
+        <span id="chapter-stars">⭐ 0</span>
+      </div>
+    </div>
+    <div id="chapter-content" class="chapter-content">
+      <!-- Dynamic chapter scenes injected here -->
+    </div>
+    <div class="parent-tip-toggle">
+      <button id="btn-parent-tip" class="parent-tip-btn" onclick="toggleParentTip()">
+        💛 Panduan Orang Tua
+      </button>
+      <div id="parent-tip-panel" class="parent-tip-panel hidden">
+        <div id="parent-tip-content"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: CERTIFICATE -->
+  <div id="screen-certificate" class="screen">
+    <div class="certificate-world">
+      <div class="confetti-container" id="confetti-container" aria-hidden="true"></div>
+      <div class="certificate-card">
+        <div class="cert-header">
+          <div class="cert-stars-row" aria-label="Lima bintang">⭐⭐⭐⭐⭐</div>
+          <h2 class="cert-title">🏆 Petualang Coding Cilik</h2>
+        </div>
+        <div class="cert-body">
+          <p class="cert-label">Diberikan kepada:</p>
+          <div class="cert-name" id="cert-child-name">---</div>
+          <p class="cert-desc">Telah berhasil membantu Robot BIMO<br>menyelesaikan Petualangan Coding Pertamanya! 🚀</p>
+          <div class="cert-badges">
+            <div class="cert-badge">🤖 Perintah</div>
+            <div class="cert-badge">📦 Kotak Ajaib</div>
+            <div class="cert-badge">🐯 Tombol Ajaib</div>
+            <div class="cert-badge">🦘 Mesin Ulangi</div>
+            <div class="cert-badge">🚂 Kereta Pelangi</div>
+          </div>
+          <div class="cert-total-stars" id="cert-total-stars">⭐ 0 Bintang Dikumpulkan</div>
+        </div>
+        <div class="cert-footer">
+          <button class="cta-primary" onclick="restartAdventure()">🔄 Mulai Lagi</button>
+          <button class="cta-secondary" onclick="printCertificate()">🖨️ Cetak / Simpan</button>
+          <button class="cta-secondary" onclick="goToMap()">🗺️ Lihat Peta</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- BIMO FLOATING HELPER (appears in chapter screens) -->
+  <div id="bimo-helper" class="bimo-helper hidden" aria-live="polite">
+    <div class="helper-bimo">
+      <div class="bimo-head-sm">
+        <div class="bimo-eyes-sm">
+          <div class="bimo-eye-sm"></div>
+          <div class="bimo-eye-sm"></div>
+        </div>
+        <div class="bimo-mouth-sm"></div>
+        <div class="bimo-antenna-sm"></div>
+      </div>
+      <div class="bimo-torso-sm"></div>
+    </div>
+    <div class="helper-bubble" id="bimo-helper-text">...</div>
+  </div>
+
+  <!-- STAR BURST EFFECT -->
+  <div id="star-burst" class="star-burst hidden" aria-hidden="true"></div>
+
+  <!-- BUG MONSTER ERROR -->
+  <div id="bug-monster" class="bug-monster hidden" role="alert">
+    <div class="bug-monster-inner">
+      <div class="bug-emoji">👾</div>
+      <p class="bug-msg" id="bug-msg">Ada Bug Monster yang sembunyi!</p>
+      <button class="bug-dismiss" onclick="dismissBug()">Cari Bug Monster! 🔍</button>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
