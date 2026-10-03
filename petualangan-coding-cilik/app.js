@@ -29,49 +29,38 @@ const STATE = {
 };
 
 // ============================================================
-// AUDIO & WEB SPEECH API (TTS Narator BIMO Bahasa Indonesia)
+// AUDIO ENGINE (Web Audio API & Web Speech API TTS)
 // ============================================================
-let audioCtx = null;
-let idVoice = null;
+import { AudioEngine } from './audio_engine.js';
 
-function initSpeechSynthesis() {
-  if ('speechSynthesis' in window) {
-    const updateVoices = () => {
-      const voices = window.speechSynthesis.getVoices();
-      idVoice = voices.find(v => v.lang.startsWith('id') || v.lang.startsWith('ind')) || voices[0];
-    };
-    updateVoices();
-    if (window.speechSynthesis.onvoiceschanged !== undefined) {
-      window.speechSynthesis.onvoiceschanged = updateVoices;
-    }
-  }
+const audio = new AudioEngine({
+  muted: STATE.muted,
+  speechEnabled: STATE.speechEnabled
+});
+
+function playTone(freq, type = 'sine', duration = 0.15, vol = 0.2) {
+  return audio.playTone(freq, type, duration, vol);
 }
-initSpeechSynthesis();
+
+function playSuccess() { return audio.playSfx('success'); }
+function playClick() { return audio.playSfx('click'); }
+function playError() { return audio.playSfx('error'); }
+function playStar() { return audio.playSfx('star'); }
+function playPop() { return audio.playSfx('pop'); }
 
 function speakText(text) {
-  if (STATE.muted || !STATE.speechEnabled || !('speechSynthesis' in window)) return;
-  try {
-    window.speechSynthesis.cancel();
-    const cleanText = String(text || '').replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}]/gu, '');
-    if (!cleanText.trim()) return;
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = 'id-ID';
-    utterance.rate = 0.95;
-    utterance.pitch = 1.1; // Bouncy cheerful robot voice
-    if (idVoice) utterance.voice = idVoice;
-    window.speechSynthesis.speak(utterance);
-  } catch (e) { /* silent fallback */ }
+  return audio.speak(text);
 }
 
 function toggleSpeech() {
   STATE.speechEnabled = !STATE.speechEnabled;
+  audio.setSpeechEnabled(STATE.speechEnabled);
   const btn = document.getElementById('btn-speech');
   if (btn) {
     btn.classList.toggle('active', STATE.speechEnabled);
     btn.textContent = STATE.speechEnabled ? '🗣️' : '😶';
   }
   if (STATE.speechEnabled) speakText('Narasi suara BIMO aktif!');
-  else if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   saveProgress();
 }
 
