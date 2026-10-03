@@ -105,7 +105,9 @@ function saveProgress() {
     trainPassengers:   STATE.trainPassengers,
     chosenRobotName:   STATE.chosenRobotName,
     muted:             STATE.muted,
-    finalProjectDone:  STATE.finalProjectDone
+    finalProjectDone:  STATE.finalProjectDone,
+    unlockedStickers:  STATE.unlockedStickers || [],
+    toddlerLevels:     STATE.toddlerLevels || { seq: 1, decomp: 1, pattern: 1, sort: 1, logic: 1 }
   };
   try { localStorage.setItem(SAVE_KEY, JSON.stringify(data)); } catch(e) {}
 }
@@ -126,7 +128,9 @@ function loadProgress() {
       trainPassengers:   d.trainPassengers   || [],
       chosenRobotName:   d.chosenRobotName   || 'BIMO',
       muted:             d.muted             || false,
-      finalProjectDone:  d.finalProjectDone  || false
+      finalProjectDone:  d.finalProjectDone  || false,
+      unlockedStickers:  d.unlockedStickers  || [],
+      toddlerLevels:     d.toddlerLevels     || { seq: 1, decomp: 1, pattern: 1, sort: 1, logic: 1 }
     });
     return !!STATE.childName;
   } catch(e) { return false; }
@@ -193,81 +197,253 @@ function restartAdventure() {
 }
 
 // ============================================================
-// TODDLER COMPUTING CURRICULUM GAMES (2-4 Years)
+// BUKU STIKER DIGITAL BIMO & TODDLER COMPUTING CURRICULUM
 // ============================================================
+const TODDLER_STICKERS = [
+  { id: 'toddler-seq-1', emoji: '🧼🐥', title: 'Bebek Bersih', desc: 'Mandiin Bebek (Sequence L1)' },
+  { id: 'toddler-seq-2', emoji: '🥪✨', title: 'Roti Keju', desc: 'Bikin Roti (Sequence L2)' },
+  { id: 'toddler-seq-3', emoji: '👕👟', title: 'Anak Rapi', desc: 'Pakai Baju (Sequence L3)' },
+  { id: 'toddler-decomp-1', emoji: '🏎️💨', title: 'Mobil Balap', desc: 'Rakit Mobil (Decomp L1)' },
+  { id: 'toddler-decomp-2', emoji: '🏡🌟', title: 'Rumah Impian', desc: 'Rakit Rumah (Decomp L2)' },
+  { id: 'toddler-decomp-3', emoji: '🤖📡', title: 'Robot BIMO', desc: 'Rakit Robot (Decomp L3)' },
+  { id: 'toddler-pattern-1', emoji: '📿🔵', title: 'Manic Pelangi', desc: 'Pola Warna (Pattern L1)' },
+  { id: 'toddler-pattern-2', emoji: '🍎🍌', title: 'Pola Buah', desc: 'Pola Makanan (Pattern L2)' },
+  { id: 'toddler-pattern-3', emoji: '⭐🟩', title: 'Bintang Warna', desc: 'Pola Bentuk (Pattern L3)' },
+  { id: 'toddler-sort-1', emoji: '🧺🍎', title: 'Kotak Buah', desc: 'Buah & Sayur (Sorting L1)' },
+  { id: 'toddler-sort-2', emoji: '🐬🦁', title: 'Dunia Hewan', desc: 'Darat & Laut (Sorting L2)' },
+  { id: 'toddler-sort-3', emoji: '🟡🟦', title: 'Geometri', desc: 'Lingkaran & Kotak (Sorting L3)' },
+  { id: 'toddler-logic-1', emoji: '🐱🐟', title: 'Kucing Kenyang', desc: 'Beri Makan (Logic L1)' },
+  { id: 'toddler-logic-2', emoji: '🔑🎁', title: 'Kunci Ajaib', desc: 'Gembok Warna (Logic L2)' },
+  { id: 'toddler-logic-3', emoji: '💡✨', title: 'Saklar Terang', desc: 'Saklar Lampu (Logic L3)' }
+];
+
 let toddlerState = {
   activeTab: 'seq',
+  levels: { seq: 1, decomp: 1, pattern: 1, sort: 1, logic: 1 },
   seqStep: 0,
   decompParts: [],
-  patternAnswer: null,
-  sortScore: 0
+  sortItemsDone: 0
 };
+
+let hintTimer = null;
+
+function clearAutoHint() {
+  if (hintTimer) { clearTimeout(hintTimer); hintTimer = null; }
+  document.querySelectorAll('.auto-hint-pulse').forEach(el => el.classList.remove('auto-hint-pulse'));
+}
+
+function startAutoHint(selector) {
+  clearAutoHint();
+  hintTimer = setTimeout(() => {
+    const el = document.querySelector(selector);
+    if (el) el.classList.add('auto-hint-pulse');
+  }, 5000);
+}
+
+function unlockSticker(stickerId) {
+  if (!STATE.unlockedStickers) STATE.unlockedStickers = [];
+  if (!STATE.unlockedStickers.includes(stickerId)) {
+    STATE.unlockedStickers.push(stickerId);
+    saveProgress();
+    const countEl = document.getElementById('toddler-sticker-count');
+    if (countEl) countEl.textContent = STATE.unlockedStickers.length;
+    showStickerToast(stickerId);
+  }
+}
+
+function showStickerToast(stickerId) {
+  const st = TODDLER_STICKERS.find(s => s.id === stickerId);
+  if (!st) return;
+  let toast = document.getElementById('star-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'star-toast';
+    toast.className = 'star-reward-toast';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `🌟 Stiker Baru Terbuka! <strong>${st.emoji} ${st.title}</strong>`;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
+function openStickerBook() {
+  playClick();
+  renderStickerGrid();
+  document.getElementById('modal-sticker-book')?.classList.remove('hidden');
+}
+
+function closeStickerBook() {
+  playClick();
+  document.getElementById('modal-sticker-book')?.classList.add('hidden');
+}
+
+function renderStickerGrid() {
+  const grid = document.getElementById('sticker-grid');
+  if (!grid) return;
+  const unlocked = STATE.unlockedStickers || [];
+  grid.innerHTML = TODDLER_STICKERS.map(s => {
+    const isUnlocked = unlocked.includes(s.id);
+    return `
+      <div class="sticker-item ${isUnlocked ? 'unlocked' : 'locked'}">
+        <div class="sticker-emoji">${isUnlocked ? s.emoji : '🔒'}</div>
+        <div class="sticker-title">${s.title}</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function getParentPromptCardHTML(text) {
+  return `
+    <div class="parent-co-play-card">
+      <div class="parent-icon">💛</div>
+      <div class="parent-text-block">
+        <div class="parent-title">Ayah &amp; Bunda Co-Play Tip:</div>
+        <div class="parent-prompt">"${text}"</div>
+      </div>
+    </div>
+  `;
+}
+
+function getLevelSwitcherHTML(concept, currentLvl) {
+  return `
+    <div class="toddler-level-switcher">
+      <button class="toddler-level-pill ${currentLvl===1?'active':''}" onclick="setToddlerLevel('${concept}', 1)">⭐ Level 1</button>
+      <button class="toddler-level-pill ${currentLvl===2?'active':''}" onclick="setToddlerLevel('${concept}', 2)">⭐ Level 2</button>
+      <button class="toddler-level-pill ${currentLvl===3?'active':''}" onclick="setToddlerLevel('${concept}', 3)">⭐ Level 3</button>
+    </div>
+  `;
+}
+
+function setToddlerLevel(concept, lvl) {
+  playClick();
+  toddlerState.levels[concept] = lvl;
+  loadToddlerGame(concept);
+}
 
 function loadToddlerGame(gameType) {
   playClick();
+  clearAutoHint();
   toddlerState.activeTab = gameType;
 
   ['seq', 'decomp', 'pattern', 'sort', 'logic'].forEach(t => {
     document.getElementById(`ttab-${t}`)?.classList.toggle('active', t === gameType);
   });
 
+  const countEl = document.getElementById('toddler-sticker-count');
+  if (countEl) countEl.textContent = (STATE.unlockedStickers || []).length;
+  const starEl = document.getElementById('toddler-stars');
+  if (starEl) starEl.textContent = STATE.totalStars;
+
   const container = document.getElementById('toddler-game-area');
   if (!container) return;
 
+  const lvl = toddlerState.levels[gameType] || 1;
+
   switch (gameType) {
     case 'seq':
-      renderToddlerSeqGame(container);
+      renderToddlerSeqGame(container, lvl);
       break;
     case 'decomp':
-      renderToddlerDecompGame(container);
+      renderToddlerDecompGame(container, lvl);
       break;
     case 'pattern':
-      renderToddlerPatternGame(container);
+      renderToddlerPatternGame(container, lvl);
       break;
     case 'sort':
-      renderToddlerSortGame(container);
+      renderToddlerSortGame(container, lvl);
       break;
     case 'logic':
-      renderToddlerLogicGame(container);
+      renderToddlerLogicGame(container, lvl);
       break;
   }
 }
 
-// 1. SEQUENCE GAME: Mandiin Bebek Kwek Kwek 🐥
-function renderToddlerSeqGame(container) {
+// 1. SEQUENCE GAMES (Level 1, 2, 3)
+function renderToddlerSeqGame(container, lvl) {
   toddlerState.seqStep = 0;
-  container.innerHTML = `
-    <div class="toddler-card">
-      <div class="toddler-card-title">🚿 Mandiin Bebek Kwek Kwek</div>
-      <div class="toddler-card-subtitle">Urutan Algoritma: Sabun 🧼 ➔ Bilas 💧 ➔ Handuk 🧺</div>
-
-      <div id="toddler-duck-box" style="font-size:90px;padding:20px;border-radius:50%;background:#FFF8DC;border:4px solid #FFD85C;box-shadow:0 8px 24px rgba(255,216,92,0.3)">
-        🐥
+  if (lvl === 1) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('seq', 1)}
+        <div class="toddler-card-title">🚿 Lvl 1: Mandiin Bebek Kwek Kwek</div>
+        <div class="toddler-card-subtitle">Urutan Algoritma: Sabun 🧼 ➔ Bilas 🚿 ➔ Handuk 🧺</div>
+        <div id="toddler-duck-box" style="font-size:90px;padding:16px;border-radius:50%;background:#FFF8DC;border:4px solid #FFD85C;box-shadow:0 8px 24px rgba(255,216,92,0.3)">🐥</div>
+        <div id="toddler-seq-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Bebeknya lagi kotor! Sentuh langkah ke-1!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+          <button class="toddler-jumbo-btn" id="sbtn-1" onclick="toddlerSeqClick(1, 1)">
+            <span class="toddler-jumbo-emoji">🧼</span>
+            <span class="toddler-jumbo-label">1. Sabun</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="sbtn-2" onclick="toddlerSeqClick(1, 2)">
+            <span class="toddler-jumbo-emoji">🚿</span>
+            <span class="toddler-jumbo-label">2. Bilas Air</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="sbtn-3" onclick="toddlerSeqClick(1, 3)">
+            <span class="toddler-jumbo-emoji">🧺</span>
+            <span class="toddler-jumbo-label">3. Handuk</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Kenapa bebek harus diberi sabun dulu sebelum dibilas air?')}
       </div>
-
-      <div id="toddler-seq-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">
-        Bebeknya lagi kotor! Sentuh langkah ke-1!
+    `;
+    startAutoHint('#sbtn-1');
+  } else if (lvl === 2) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('seq', 2)}
+        <div class="toddler-card-title">🥪 Lvl 2: Bikin Roti Keju Lezat</div>
+        <div class="toddler-card-subtitle">Urutan Algoritma: Roti Bawah 🍞 ➔ Keju 🧀 ➔ Roti Atas 🍞</div>
+        <div id="toddler-duck-box" style="font-size:80px;min-height:95px;display:flex;align-items:center;justify-content:center">❓</div>
+        <div id="toddler-seq-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Ayo bikin roti! Sentuh Roti Bawah 🍞!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+          <button class="toddler-jumbo-btn" id="sbtn-1" onclick="toddlerSeqClick(2, 1)">
+            <span class="toddler-jumbo-emoji">🍞</span>
+            <span class="toddler-jumbo-label">1. Roti Bawah</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="sbtn-2" onclick="toddlerSeqClick(2, 2)">
+            <span class="toddler-jumbo-emoji">🧀</span>
+            <span class="toddler-jumbo-label">2. Keju</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="sbtn-3" onclick="toddlerSeqClick(2, 3)">
+            <span class="toddler-jumbo-emoji">🍞</span>
+            <span class="toddler-jumbo-label">3. Roti Atas</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Makanan apa lagi yang enak diapit di dalam roti?')}
       </div>
-
-      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
-        <button class="toddler-jumbo-btn" onclick="toddlerSeqClick(1)">
-          <span class="toddler-jumbo-emoji">🧼</span>
-          <span class="toddler-jumbo-label">1. Sabun</span>
-        </button>
-        <button class="toddler-jumbo-btn" onclick="toddlerSeqClick(2)">
-          <span class="toddler-jumbo-emoji">🚿</span>
-          <span class="toddler-jumbo-label">2. Bilas Air</span>
-        </button>
-        <button class="toddler-jumbo-btn" onclick="toddlerSeqClick(3)">
-          <span class="toddler-jumbo-emoji">🧺</span>
-          <span class="toddler-jumbo-label">3. Handuk</span>
-        </button>
+    `;
+    startAutoHint('#sbtn-1');
+  } else {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('seq', 3)}
+        <div class="toddler-card-title">👕 Lvl 3: Siap-siap Pakai Baju</div>
+        <div class="toddler-card-subtitle">Urutan Algoritma: Celana 🩲 ➔ Baju 👕 ➔ Sepatu 👟</div>
+        <div id="toddler-duck-box" style="font-size:80px;min-height:95px;display:flex;align-items:center;justify-content:center">👶</div>
+        <div id="toddler-seq-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Pakai celana dulu! Sentuh langkah ke-1!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+          <button class="toddler-jumbo-btn" id="sbtn-1" onclick="toddlerSeqClick(3, 1)">
+            <span class="toddler-jumbo-emoji">🩲</span>
+            <span class="toddler-jumbo-label">1. Celana</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="sbtn-2" onclick="toddlerSeqClick(3, 2)">
+            <span class="toddler-jumbo-emoji">👕</span>
+            <span class="toddler-jumbo-label">2. Baju</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="sbtn-3" onclick="toddlerSeqClick(3, 3)">
+            <span class="toddler-jumbo-emoji">👟</span>
+            <span class="toddler-jumbo-label">3. Sepatu</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Kenapa sepatu dipakai paling akhir setelah baju dan celana?')}
       </div>
-    </div>
-  `;
+    `;
+    startAutoHint('#sbtn-1');
+  }
 }
 
-function toddlerSeqClick(step) {
+function toddlerSeqClick(lvl, step) {
+  clearAutoHint();
   const msg = document.getElementById('toddler-seq-msg');
   const duck = document.getElementById('toddler-duck-box');
 
@@ -275,59 +451,145 @@ function toddlerSeqClick(step) {
     toddlerState.seqStep++;
     playPop();
 
-    if (toddlerState.seqStep === 1) {
-      if (duck) duck.textContent = '🧼🐥';
-      if (msg) msg.textContent = 'Bebek sudah disabun! Sekarang bilas air! 🚿';
-    } else if (toddlerState.seqStep === 2) {
-      if (duck) duck.textContent = '💧🐥💧';
-      if (msg) msg.textContent = 'Bebek sudah bersih! Sekarang keringkan dengan handuk! 🧺';
-    } else if (toddlerState.seqStep === 3) {
-      playSuccess();
-      if (duck) duck.textContent = '✨🐥✨';
-      if (msg) msg.textContent = '🎉 HORE! Bebeknya wangi & bersih sekali! Urutan algoritma sempurna!';
-      awardStar('toddler-seq');
+    if (lvl === 1) {
+      if (toddlerState.seqStep === 1) {
+        if (duck) duck.textContent = '🧼🐥';
+        if (msg) msg.textContent = 'Bebek sudah disabun! Sekarang bilas air! 🚿';
+        startAutoHint('#sbtn-2');
+      } else if (toddlerState.seqStep === 2) {
+        if (duck) duck.textContent = '💧🐥💧';
+        if (msg) msg.textContent = 'Bebek sudah bersih! Sekarang keringkan dengan handuk! 🧺';
+        startAutoHint('#sbtn-3');
+      } else if (toddlerState.seqStep === 3) {
+        playSuccess();
+        if (duck) duck.textContent = '✨🐥✨';
+        if (msg) msg.textContent = '🎉 HORE! Bebeknya wangi & bersih sekali!';
+        awardStar('toddler-seq');
+        unlockSticker('toddler-seq-1');
+      }
+    } else if (lvl === 2) {
+      if (toddlerState.seqStep === 1) {
+        if (duck) duck.textContent = '🍞';
+        if (msg) msg.textContent = 'Roti bawah siap! Sekarang tambahkan keju 🧀!';
+        startAutoHint('#sbtn-2');
+      } else if (toddlerState.seqStep === 2) {
+        if (duck) duck.textContent = '🍞🧀';
+        if (msg) msg.textContent = 'Keju terpasang! Tutup dengan roti atas 🍞!';
+        startAutoHint('#sbtn-3');
+      } else if (toddlerState.seqStep === 3) {
+        playSuccess();
+        if (duck) duck.textContent = '🥪✨ NYAM!';
+        if (msg) msg.textContent = '🎉 WAH LEZAT! Roti keju siap dimakan!';
+        awardStar('toddler-seq');
+        unlockSticker('toddler-seq-2');
+      }
+    } else if (lvl === 3) {
+      if (toddlerState.seqStep === 1) {
+        if (duck) duck.textContent = '🩲👶';
+        if (msg) msg.textContent = 'Celana terpasang! Sekarang pakai baju 👕!';
+        startAutoHint('#sbtn-2');
+      } else if (toddlerState.seqStep === 2) {
+        if (duck) duck.textContent = '👕👶';
+        if (msg) msg.textContent = 'Baju rapi! Terakhir pakai sepatu 👟!';
+        startAutoHint('#sbtn-3');
+      } else if (toddlerState.seqStep === 3) {
+        playSuccess();
+        if (duck) duck.textContent = '✨🧒👟';
+        if (msg) msg.textContent = '🎉 HEBAT! Si Kecil sudah rapi & siap bermain!';
+        awardStar('toddler-seq');
+        unlockSticker('toddler-seq-3');
+      }
     }
   } else {
     playError();
-    if (msg) msg.textContent = '🤪 Ops! Ikuti urutannya: 1. Sabun 🧼 ➔ 2. Bilas 🚿 ➔ 3. Handuk 🧺!';
+    if (msg) msg.textContent = '🤪 Ops! Ikuti urutan langkahnya ya!';
+    startAutoHint(`#sbtn-${toddlerState.seqStep + 1}`);
   }
 }
 
-// 2. DECOMPOSITION GAME: Rakit Mobil Balap 🚗
-function renderToddlerDecompGame(container) {
+// 2. DECOMPOSITION GAMES (Level 1, 2, 3)
+function renderToddlerDecompGame(container, lvl) {
   toddlerState.decompParts = [];
-  container.innerHTML = `
-    <div class="toddler-card">
-      <div class="toddler-card-title">🚗 Rakit Mobil Balap</div>
-      <div class="toddler-card-subtitle">Decomposisi: Gabungkan bagian roda, body, &amp; lampu!</div>
-
-      <div id="toddler-car-box" style="font-size:80px;min-height:110px;display:flex;align-items:center;justify-content:center">
-        ❓
+  if (lvl === 1) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('decomp', 1)}
+        <div class="toddler-card-title">🏎️ Lvl 1: Rakit Mobil Balap</div>
+        <div class="toddler-card-subtitle">Dekomposisi: Gabungkan Roda, Body, & Lampu!</div>
+        <div id="toddler-car-box" style="font-size:80px;min-height:105px;display:flex;align-items:center;justify-content:center">❓</div>
+        <div id="toddler-decomp-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Sentuh semua bagian untuk merakit mobil!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+          <button class="toddler-jumbo-btn" id="dbtn-wheel" onclick="toddlerDecompClick(1, 'wheel', '🛞 Roda')">
+            <span class="toddler-jumbo-emoji">🛞</span>
+            <span class="toddler-jumbo-label">Roda</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="dbtn-body" onclick="toddlerDecompClick(1, 'body', '🏎️ Body')">
+            <span class="toddler-jumbo-emoji">🏎️</span>
+            <span class="toddler-jumbo-label">Body</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="dbtn-light" onclick="toddlerDecompClick(1, 'light', '💡 Lampu')">
+            <span class="toddler-jumbo-emoji">💡</span>
+            <span class="toddler-jumbo-label">Lampu</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Menurutmu kenapa mobil butuh roda?')}
       </div>
-
-      <div id="toddler-decomp-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">
-        Sentuh semua bagian untuk merakit mobil!
+    `;
+  } else if (lvl === 2) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('decomp', 2)}
+        <div class="toddler-card-title">🏡 Lvl 2: Rakit Rumah Idaman</div>
+        <div class="toddler-card-subtitle">Dekomposisi: Gabungkan Dinding, Atap, & Pintu!</div>
+        <div id="toddler-car-box" style="font-size:80px;min-height:105px;display:flex;align-items:center;justify-content:center">❓</div>
+        <div id="toddler-decomp-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Sentuh semua bagian untuk membangun rumah!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+          <button class="toddler-jumbo-btn" id="dbtn-wall" onclick="toddlerDecompClick(2, 'wall', '🧱 Dinding')">
+            <span class="toddler-jumbo-emoji">🧱</span>
+            <span class="toddler-jumbo-label">Dinding</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="dbtn-roof" onclick="toddlerDecompClick(2, 'roof', '🛖 Atap')">
+            <span class="toddler-jumbo-emoji">🛖</span>
+            <span class="toddler-jumbo-label">Atap</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="dbtn-door" onclick="toddlerDecompClick(2, 'door', '🚪 Pintu')">
+            <span class="toddler-jumbo-emoji">🚪</span>
+            <span class="toddler-jumbo-label">Pintu</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Apa fungsi atap rumah saat hujan tiba?')}
       </div>
-
-      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
-        <button class="toddler-jumbo-btn" id="dbtn-wheel" onclick="toddlerDecompClick('wheel', '🛞 Roda')">
-          <span class="toddler-jumbo-emoji">🛞</span>
-          <span class="toddler-jumbo-label">Roda</span>
-        </button>
-        <button class="toddler-jumbo-btn" id="dbtn-body" onclick="toddlerDecompClick('body', '🏎️ Body')">
-          <span class="toddler-jumbo-emoji">🏎️</span>
-          <span class="toddler-jumbo-label">Body</span>
-        </button>
-        <button class="toddler-jumbo-btn" id="dbtn-light" onclick="toddlerDecompClick('light', '💡 Lampu')">
-          <span class="toddler-jumbo-emoji">💡</span>
-          <span class="toddler-jumbo-label">Lampu</span>
-        </button>
+    `;
+  } else {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('decomp', 3)}
+        <div class="toddler-card-title">🤖 Lvl 3: Rakit Robot BIMO</div>
+        <div class="toddler-card-subtitle">Dekomposisi: Gabungkan Badan, Kepala, & Antena!</div>
+        <div id="toddler-car-box" style="font-size:80px;min-height:105px;display:flex;align-items:center;justify-content:center">❓</div>
+        <div id="toddler-decomp-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Sentuh semua komponen untuk merakit BIMO!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+          <button class="toddler-jumbo-btn" id="dbtn-torso" onclick="toddlerDecompClick(3, 'torso', '🦾 Badan')">
+            <span class="toddler-jumbo-emoji">🦾</span>
+            <span class="toddler-jumbo-label">Badan</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="dbtn-head" onclick="toddlerDecompClick(3, 'head', '🧢 Kepala')">
+            <span class="toddler-jumbo-emoji">🧢</span>
+            <span class="toddler-jumbo-label">Kepala</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="dbtn-ant" onclick="toddlerDecompClick(3, 'ant', '📡 Antena')">
+            <span class="toddler-jumbo-emoji">📡</span>
+            <span class="toddler-jumbo-label">Antena</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Untuk apa antena merah di atas kepala BIMO?')}
       </div>
-    </div>
-  `;
+    `;
+  }
 }
 
-function toddlerDecompClick(part, label) {
+function toddlerDecompClick(lvl, part, label) {
+  clearAutoHint();
   if (!toddlerState.decompParts.includes(part)) {
     toddlerState.decompParts.push(part);
     playPop();
@@ -338,195 +600,453 @@ function toddlerDecompClick(part, label) {
 
     if (btn) btn.style.opacity = '0.4';
 
-    if (toddlerState.decompParts.length === 1) {
-      if (carBox) carBox.textContent = '🛞';
-      if (msg) msg.textContent = `${label} terpasang! Pasang bagian lainnya!`;
-    } else if (toddlerState.decompParts.length === 2) {
-      if (carBox) carBox.textContent = '🏎️🛞';
-      if (msg) msg.textContent = `${label} terpasang! Tinggal 1 bagian lagi!`;
-    } else if (toddlerState.decompParts.length === 3) {
-      playSuccess();
-      if (carBox) {
-        carBox.textContent = '🏎️💨 VROOOM!';
-        carBox.style.animation = 'result-pop 0.5s var(--ease-bounce)';
+    if (lvl === 1) {
+      if (toddlerState.decompParts.length === 1) {
+        if (carBox) carBox.textContent = '🛞';
+        if (msg) msg.textContent = `${label} terpasang! Pasang bagian lainnya!`;
+      } else if (toddlerState.decompParts.length === 2) {
+        if (carBox) carBox.textContent = '🏎️🛞';
+        if (msg) msg.textContent = `${label} terpasang! Tinggal 1 bagian lagi!`;
+      } else if (toddlerState.decompParts.length === 3) {
+        playSuccess();
+        if (carBox) carBox.textContent = '🏎️💨 VROOOM!';
+        if (msg) msg.textContent = '🎉 VROOOM! Mobil balap berhasil dirakit!';
+        awardStar('toddler-decomp');
+        unlockSticker('toddler-decomp-1');
       }
-      if (msg) msg.textContent = '🎉 VROOOM! Mobil balap berhasil dirakit sempurna!';
-      awardStar('toddler-decomp');
+    } else if (lvl === 2) {
+      if (toddlerState.decompParts.length === 1) {
+        if (carBox) carBox.textContent = '🧱';
+        if (msg) msg.textContent = `${label} terpasang! Lanjutkan merakit!`;
+      } else if (toddlerState.decompParts.length === 2) {
+        if (carBox) carBox.textContent = '🧱🛖';
+        if (msg) msg.textContent = `${label} terpasang! Pasang pintu 🚪!`;
+      } else if (toddlerState.decompParts.length === 3) {
+        playSuccess();
+        if (carBox) carBox.textContent = '🏡✨';
+        if (msg) msg.textContent = '🎉 HORE! Rumah impian selesai dibangun!';
+        awardStar('toddler-decomp');
+        unlockSticker('toddler-decomp-2');
+      }
+    } else if (lvl === 3) {
+      if (toddlerState.decompParts.length === 1) {
+        if (carBox) carBox.textContent = '🦾';
+        if (msg) msg.textContent = `${label} terpasang! Tambahkan bagian lain!`;
+      } else if (toddlerState.decompParts.length === 2) {
+        if (carBox) carBox.textContent = '🤖';
+        if (msg) msg.textContent = `${label} terpasang! Pasang antena 📡!`;
+      } else if (toddlerState.decompParts.length === 3) {
+        playSuccess();
+        if (carBox) carBox.textContent = '🤖✨ BEEP BOOP!';
+        if (msg) msg.textContent = '🎉 BEEP BOOP! Robot BIMO sudah utuh kembali!';
+        awardStar('toddler-decomp');
+        unlockSticker('toddler-decomp-3');
+      }
     }
   }
 }
 
-// 3. PATTERN RECOGNITION GAME: Kalung Pelangi 📿
-function renderToddlerPatternGame(container) {
-  container.innerHTML = `
-    <div class="toddler-card">
-      <div class="toddler-card-title">📿 Kalung Pelangi</div>
-      <div class="toddler-card-subtitle">Pengenalan Pola: Manic warna apa selanjutnya?</div>
-
-      <div style="font-size:44px;letter-spacing:10px;background:#FFF3E0;padding:16px 28px;border-radius:20px;border:3px solid #FF8C42">
-        🔴 🔵 🔴 <span id="toddler-pattern-target" style="border:3px dashed #FF8C42;padding:0 8px;border-radius:12px">❓</span>
+// 3. PATTERN RECOGNITION GAMES (Level 1, 2, 3)
+function renderToddlerPatternGame(container, lvl) {
+  if (lvl === 1) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('pattern', 1)}
+        <div class="toddler-card-title">📿 Lvl 1: Pola Manic Pelangi</div>
+        <div class="toddler-card-subtitle">Pengenalan Pola 2-Warna: Mana yang berikutnya?</div>
+        <div style="font-size:44px;letter-spacing:8px;background:#FFF3E0;padding:16px 24px;border-radius:20px;border:3px solid #FF8C42">
+          🔴 🔵 🔴 <span id="toddler-pattern-target" style="border:3px dashed #FF8C42;padding:0 8px;border-radius:12px">❓</span>
+        </div>
+        <div id="toddler-pattern-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Pilih warna manic selanjutnya!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(2, 1fr)">
+          <button class="toddler-jumbo-btn" id="pbtn-correct" onclick="toddlerPatternClick(1, true)">
+            <span class="toddler-jumbo-emoji">🔵</span>
+            <span class="toddler-jumbo-label">Manic Biru</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="pbtn-wrong" onclick="toddlerPatternClick(1, false)">
+            <span class="toddler-jumbo-emoji">🔴</span>
+            <span class="toddler-jumbo-label">Manic Merah</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Coba sebutkan warnanya bersama-sama: Merah, Biru, Merah...')}
       </div>
-
-      <div id="toddler-pattern-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">
-        Pilih warna manic berikutnya!
+    `;
+    startAutoHint('#pbtn-correct');
+  } else if (lvl === 2) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('pattern', 2)}
+        <div class="toddler-card-title">🍎 Lvl 2: Pola Buah Ajaib</div>
+        <div class="toddler-card-subtitle">Pengenalan Pola Makanan: Buah apa selanjutnya?</div>
+        <div style="font-size:44px;letter-spacing:8px;background:#FFF3E0;padding:16px 24px;border-radius:20px;border:3px solid #FF8C42">
+          🍎 🍌 🍎 <span id="toddler-pattern-target" style="border:3px dashed #FF8C42;padding:0 8px;border-radius:12px">❓</span>
+        </div>
+        <div id="toddler-pattern-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Pilih buah berikutnya!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(2, 1fr)">
+          <button class="toddler-jumbo-btn" id="pbtn-correct" onclick="toddlerPatternClick(2, true)">
+            <span class="toddler-jumbo-emoji">🍌</span>
+            <span class="toddler-jumbo-label">Pisang</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="pbtn-wrong" onclick="toddlerPatternClick(2, false)">
+            <span class="toddler-jumbo-emoji">🍎</span>
+            <span class="toddler-jumbo-label">Apel</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Setelah Apel, Pisang, Apel... buah apa berikutnya?')}
       </div>
-
-      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(2, 1fr)">
-        <button class="toddler-jumbo-btn" onclick="toddlerPatternClick('blue')">
-          <span class="toddler-jumbo-emoji">🔵</span>
-          <span class="toddler-jumbo-label">Manic Biru</span>
-        </button>
-        <button class="toddler-jumbo-btn" onclick="toddlerPatternClick('red')">
-          <span class="toddler-jumbo-emoji">🔴</span>
-          <span class="toddler-jumbo-label">Manic Merah</span>
-        </button>
+    `;
+    startAutoHint('#pbtn-correct');
+  } else {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('pattern', 3)}
+        <div class="toddler-card-title">⭐ Lvl 3: Pola 3 Bentuk Ajaib</div>
+        <div class="toddler-card-subtitle">Pengenalan Pola 3-Langkah: ⭐ 🔴 🟩 ⭐ 🔴 [?]</div>
+        <div style="font-size:40px;letter-spacing:6px;background:#FFF3E0;padding:16px 20px;border-radius:20px;border:3px solid #FF8C42">
+          ⭐ 🔴 🟩 ⭐ 🔴 <span id="toddler-pattern-target" style="border:3px dashed #FF8C42;padding:0 6px;border-radius:12px">❓</span>
+        </div>
+        <div id="toddler-pattern-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">Pilih bentuk kelanjutannya!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+          <button class="toddler-jumbo-btn" id="pbtn-correct" onclick="toddlerPatternClick(3, true)">
+            <span class="toddler-jumbo-emoji">🟩</span>
+            <span class="toddler-jumbo-label">Kotak Hijau</span>
+          </button>
+          <button class="toddler-jumbo-btn" onclick="toddlerPatternClick(3, false)">
+            <span class="toddler-jumbo-emoji">⭐</span>
+            <span class="toddler-jumbo-label">Bintang</span>
+          </button>
+          <button class="toddler-jumbo-btn" onclick="toddlerPatternClick(3, false)">
+            <span class="toddler-jumbo-emoji">🔴</span>
+            <span class="toddler-jumbo-label">Lingkaran</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Bintang, Lingkaran, Kotak... Bintang, Lingkaran... lalu?')}
       </div>
-    </div>
-  `;
+    `;
+    startAutoHint('#pbtn-correct');
+  }
 }
 
-function toddlerPatternClick(color) {
+function toddlerPatternClick(lvl, isCorrect) {
+  clearAutoHint();
   const target = document.getElementById('toddler-pattern-target');
   const msg = document.getElementById('toddler-pattern-msg');
 
-  if (color === 'blue') {
+  if (isCorrect) {
     playSuccess();
-    if (target) target.textContent = '🔵';
-    if (msg) msg.textContent = '🎉 HEBAT! Polanya: Merah 🔴 ➔ Biru 🔵 ➔ Merah 🔴 ➔ Biru 🔵!';
-    awardStar('toddler-pattern');
+    if (lvl === 1) {
+      if (target) target.textContent = '🔵';
+      if (msg) msg.textContent = '🎉 HEBAT! Polanya: Merah 🔴 ➔ Biru 🔵 ➔ Merah 🔴 ➔ Biru 🔵!';
+      awardStar('toddler-pattern');
+      unlockSticker('toddler-pattern-1');
+    } else if (lvl === 2) {
+      if (target) target.textContent = '🍌';
+      if (msg) msg.textContent = '🎉 PINTAR! Polanya: Apel 🍎 ➔ Pisang 🍌 ➔ Apel 🍎 ➔ Pisang 🍌!';
+      awardStar('toddler-pattern');
+      unlockSticker('toddler-pattern-2');
+    } else {
+      if (target) target.textContent = '🟩';
+      if (msg) msg.textContent = '🎉 LUAR BIASA! Pola 3 bentuk selesai!';
+      awardStar('toddler-pattern');
+      unlockSticker('toddler-pattern-3');
+    }
   } else {
     playError();
-    if (msg) msg.textContent = '🤪 Ops! Perhatikan polanya: Merah, Biru, Merah... berikutnya Biru 🔵!';
+    if (msg) msg.textContent = '🤪 Ops! Coba lihat lagi urutan warnanya!';
+    startAutoHint('#pbtn-correct');
   }
 }
 
-// 4. SORTING GAME: Pisahkan Buah & Sayur 🍎🥦
-function renderToddlerSortGame(container) {
-  container.innerHTML = `
-    <div class="toddler-card">
-      <div class="toddler-card-title">🍎 Pisahkan Buah &amp; Sayur</div>
-      <div class="toddler-card-subtitle">Pengelompokan Data: Mana Buah dan mana Sayur?</div>
-
-      <div style="display:flex;gap:16px;width:100%;justify-content:center">
-        <div style="flex:1;background:#FFEAEA;border:3px solid #FF6B6B;border-radius:20px;padding:16px;text-align:center">
-          <div style="font-size:28px">🧺🍎</div>
-          <div style="font-family:var(--font-display);font-size:16px;color:#8B0000">Kotak Buah</div>
-          <div id="box-fruit-items" style="font-size:32px;margin-top:8px;min-height:40px"></div>
+// 4. SORTING GAMES (Level 1, 2, 3)
+function renderToddlerSortGame(container, lvl) {
+  toddlerState.sortItemsDone = 0;
+  if (lvl === 1) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('sort', 1)}
+        <div class="toddler-card-title">🍎 Lvl 1: Pisahkan Buah & Sayur</div>
+        <div class="toddler-card-subtitle">Pemilahan Data: Masukkan Buah & Sayur ke Kotaknya!</div>
+        <div style="display:flex;gap:16px;width:100%;justify-content:center">
+          <div style="flex:1;background:#FFEAEA;border:3px solid #FF6B6B;border-radius:20px;padding:14px;text-align:center">
+            <div style="font-size:26px">🧺🍎</div>
+            <div style="font-family:var(--font-display);font-size:16px;color:#8B0000">Kotak Buah</div>
+            <div id="box-left-items" style="font-size:32px;margin-top:6px;min-height:38px"></div>
+          </div>
+          <div style="flex:1;background:#E8F9EF;border:3px solid #5CC86A;border-radius:20px;padding:14px;text-align:center">
+            <div style="font-size:26px">🧺🥦</div>
+            <div style="font-family:var(--font-display);font-size:16px;color:#0D5020">Kotak Sayur</div>
+            <div id="box-right-items" style="font-size:32px;margin-top:6px;min-height:38px"></div>
+          </div>
         </div>
-        <div style="flex:1;background:#E8F9EF;border:3px solid #5CC86A;border-radius:20px;padding:16px;text-align:center">
-          <div style="font-size:28px">🧺🥦</div>
-          <div style="font-family:var(--font-display);font-size:16px;color:#0D5020">Kotak Sayur</div>
-          <div id="box-veg-items" style="font-size:32px;margin-top:8px;min-height:40px"></div>
+        <div id="toddler-sort-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">Sentuh makanan untuk memilah!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(4, 1fr)">
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(1, 'left', '🍎', this)">
+            <span class="toddler-jumbo-emoji">🍎</span>
+            <span class="toddler-jumbo-label">Apel</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(1, 'right', '🥦', this)">
+            <span class="toddler-jumbo-emoji">🥦</span>
+            <span class="toddler-jumbo-label">Brokoli</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(1, 'left', '🍌', this)">
+            <span class="toddler-jumbo-emoji">🍌</span>
+            <span class="toddler-jumbo-label">Pisang</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(1, 'right', '🥕', this)">
+            <span class="toddler-jumbo-emoji">🥕</span>
+            <span class="toddler-jumbo-label">Wortel</span>
+          </button>
         </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Brokoli termasuk buah atau sayur?')}
       </div>
-
-      <div id="toddler-sort-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">
-        Masukkan Makanan ke Kotak yang Tepat!
+    `;
+    startAutoHint('.sort-item-btn');
+  } else if (lvl === 2) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('sort', 2)}
+        <div class="toddler-card-title">🐬 Lvl 2: Hewan Darat vs Hewan Laut</div>
+        <div class="toddler-card-subtitle">Pemilahan Data: Mana hewan darat & hewan air?</div>
+        <div style="display:flex;gap:16px;width:100%;justify-content:center">
+          <div style="flex:1;background:#E8F9EF;border:3px solid #5CC86A;border-radius:20px;padding:14px;text-align:center">
+            <div style="font-size:26px">🦁🏞️</div>
+            <div style="font-family:var(--font-display);font-size:16px;color:#0D5020">Darat</div>
+            <div id="box-left-items" style="font-size:32px;margin-top:6px;min-height:38px"></div>
+          </div>
+          <div style="flex:1;background:#E8F4FD;border:3px solid #5BB8F5;border-radius:20px;padding:14px;text-align:center">
+            <div style="font-size:26px">🐬🌊</div>
+            <div style="font-family:var(--font-display);font-size:16px;color:#004080">Laut</div>
+            <div id="box-right-items" style="font-size:32px;margin-top:6px;min-height:38px"></div>
+          </div>
+        </div>
+        <div id="toddler-sort-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">Kembalikan hewan ke tempat tinggalnya!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(4, 1fr)">
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(2, 'left', '🦁', this)">
+            <span class="toddler-jumbo-emoji">🦁</span>
+            <span class="toddler-jumbo-label">Singa</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(2, 'right', '🐬', this)">
+            <span class="toddler-jumbo-emoji">🐬</span>
+            <span class="toddler-jumbo-label">Lumba-lumba</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(2, 'left', '🐘', this)">
+            <span class="toddler-jumbo-emoji">🐘</span>
+            <span class="toddler-jumbo-label">Gajah</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(2, 'right', '🐙', this)">
+            <span class="toddler-jumbo-emoji">🐙</span>
+            <span class="toddler-jumbo-label">Gurita</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Dimana tempat tinggal Lumba-Lumba?')}
       </div>
-
-      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(4, 1fr)" id="toddler-sort-pool">
-        <button class="toddler-jumbo-btn" onclick="toddlerSortClick('fruit', '🍎', this)">
-          <span class="toddler-jumbo-emoji">🍎</span>
-          <span class="toddler-jumbo-label">Apel</span>
-        </button>
-        <button class="toddler-jumbo-btn" onclick="toddlerSortClick('veg', '🥦', this)">
-          <span class="toddler-jumbo-emoji">🥦</span>
-          <span class="toddler-jumbo-label">Brokoli</span>
-        </button>
-        <button class="toddler-jumbo-btn" onclick="toddlerSortClick('fruit', '🍌', this)">
-          <span class="toddler-jumbo-emoji">🍌</span>
-          <span class="toddler-jumbo-label">Pisang</span>
-        </button>
-        <button class="toddler-jumbo-btn" onclick="toddlerSortClick('veg', '🥕', this)">
-          <span class="toddler-jumbo-emoji">🥕</span>
-          <span class="toddler-jumbo-label">Wortel</span>
-        </button>
+    `;
+    startAutoHint('.sort-item-btn');
+  } else {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('sort', 3)}
+        <div class="toddler-card-title">🟡 Lvl 3: Lingkaran vs Kotak</div>
+        <div class="toddler-card-subtitle">Pemilahan Bentuk: Pisahkan Lingkaran & Kotak!</div>
+        <div style="display:flex;gap:16px;width:100%;justify-content:center">
+          <div style="flex:1;background:#FFF8DC;border:3px solid #FFD85C;border-radius:20px;padding:14px;text-align:center">
+            <div style="font-size:26px">🟡</div>
+            <div style="font-family:var(--font-display);font-size:16px;color:#7A5800">Lingkaran</div>
+            <div id="box-left-items" style="font-size:32px;margin-top:6px;min-height:38px"></div>
+          </div>
+          <div style="flex:1;background:#E8F4FD;border:3px solid #5BB8F5;border-radius:20px;padding:14px;text-align:center">
+            <div style="font-size:26px">🟦</div>
+            <div style="font-family:var(--font-display);font-size:16px;color:#004080">Kotak</div>
+            <div id="box-right-items" style="font-size:32px;margin-top:6px;min-height:38px"></div>
+          </div>
+        </div>
+        <div id="toddler-sort-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">Kumpulkan bentuk ke wadahnya!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(4, 1fr)">
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(3, 'left', '🟡', this)">
+            <span class="toddler-jumbo-emoji">🟡</span>
+            <span class="toddler-jumbo-label">Kuning</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(3, 'right', '🟦', this)">
+            <span class="toddler-jumbo-emoji">🟦</span>
+            <span class="toddler-jumbo-label">Biru</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(3, 'left', '🔴', this)">
+            <span class="toddler-jumbo-emoji">🔴</span>
+            <span class="toddler-jumbo-label">Merah</span>
+          </button>
+          <button class="toddler-jumbo-btn sort-item-btn" onclick="toddlerSortClick(3, 'right', '🟩', this)">
+            <span class="toddler-jumbo-emoji">🟩</span>
+            <span class="toddler-jumbo-label">Hijau</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Bola bulat itu lingkaran atau kotak?')}
       </div>
-    </div>
-  `;
-  toddlerState.sortScore = 0;
+    `;
+    startAutoHint('.sort-item-btn');
+  }
 }
 
-function toddlerSortClick(type, emoji, btn) {
+function toddlerSortClick(lvl, targetBox, emoji, btn) {
+  clearAutoHint();
   playPop();
   btn.style.display = 'none';
-  toddlerState.sortScore++;
+  toddlerState.sortItemsDone++;
 
-  if (type === 'fruit') {
-    const fBox = document.getElementById('box-fruit-items');
-    if (fBox) fBox.textContent += emoji + ' ';
-  } else {
-    const vBox = document.getElementById('box-veg-items');
-    if (vBox) vBox.textContent += emoji + ' ';
-  }
+  const box = document.getElementById(targetBox === 'left' ? 'box-left-items' : 'box-right-items');
+  if (box) box.textContent += emoji + ' ';
 
   const msg = document.getElementById('toddler-sort-msg');
-  if (toddlerState.sortScore >= 4) {
+  if (toddlerState.sortItemsDone >= 4) {
     playSuccess();
-    if (msg) msg.textContent = '🎉 PINTAR! Semua buah & sayur sudah dikelompokkan dengan benar!';
+    if (msg) msg.textContent = '🎉 HEBAT! Semua item berhasil dipilah dengan sempurna!';
     awardStar('toddler-sort');
+    unlockSticker(lvl === 1 ? 'toddler-sort-1' : (lvl === 2 ? 'toddler-sort-2' : 'toddler-sort-3'));
   } else {
     if (msg) msg.textContent = `Bagus! ${emoji} sudah dimasukkan! Lanjutkan!`;
+    startAutoHint('.sort-item-btn:not([style*="display: none"])');
   }
 }
 
-// 5. LOGIC GAME: Beri Makan Hewan 🐱🐰
-function renderToddlerLogicGame(container) {
-  container.innerHTML = `
-    <div class="toddler-card">
-      <div class="toddler-card-title">🐱 Beri Makan Teman Hewan</div>
-      <div class="toddler-card-subtitle">Logika Suka/Tidak Suka: Kucing suka Ikan 🐟, Kelinci suka Wortel 🥕</div>
-
-      <div style="display:flex;gap:20px;justify-content:center;align-items:center">
-        <div style="text-align:center">
-          <div style="font-size:70px">🐱</div>
-          <div style="font-family:var(--font-display);font-size:18px">Kucing</div>
-          <div id="cat-food-slot" style="font-size:36px;min-height:44px">❓</div>
+// 5. LOGIC / CAUSE & EFFECT GAMES (Level 1, 2, 3)
+function renderToddlerLogicGame(container, lvl) {
+  if (lvl === 1) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('logic', 1)}
+        <div class="toddler-card-title">🐱 Lvl 1: Beri Makan Teman Hewan</div>
+        <div class="toddler-card-subtitle">Logika Sebab-Akibat: Kucing suka Ikan 🐟, Kelinci suka Wortel 🥕</div>
+        <div style="display:flex;gap:20px;justify-content:center;align-items:center">
+          <div style="text-align:center">
+            <div style="font-size:65px">🐱</div>
+            <div style="font-family:var(--font-display);font-size:16px">Kucing</div>
+            <div id="slot-1" style="font-size:32px;min-height:40px">❓</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:65px">🐰</div>
+            <div style="font-family:var(--font-display);font-size:16px">Kelinci</div>
+            <div id="slot-2" style="font-size:32px;min-height:40px">❓</div>
+          </div>
         </div>
-        <div style="text-align:center">
-          <div style="font-size:70px">🐰</div>
-          <div style="font-family:var(--font-display);font-size:18px">Kelinci</div>
-          <div id="rabbit-food-slot" style="font-size:36px;min-height:44px">❓</div>
+        <div id="toddler-logic-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">Sentuh makanan untuk hewan yang tepat!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(2, 1fr)">
+          <button class="toddler-jumbo-btn" id="lbtn-fish" onclick="toddlerLogicClick(1, 'fish')">
+            <span class="toddler-jumbo-emoji">🐟</span>
+            <span class="toddler-jumbo-label">Beri Ikan</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="lbtn-carrot" onclick="toddlerLogicClick(1, 'carrot')">
+            <span class="toddler-jumbo-emoji">🥕</span>
+            <span class="toddler-jumbo-label">Beri Wortel</span>
+          </button>
         </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Apa yang terjadi jika Kucing diberi makanan kesukaannya?')}
       </div>
-
-      <div id="toddler-logic-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">
-        Sentuh makanan untuk diberikan kepada hewan yang tepat!
+    `;
+    startAutoHint('#lbtn-fish');
+  } else if (lvl === 2) {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('logic', 2)}
+        <div class="toddler-card-title">🔑 Lvl 2: Kunci & Gembok Warna</div>
+        <div class="toddler-card-subtitle">Logika Cocok Warna: Kunci mana untuk membuka Kotak Hadiah?</div>
+        <div style="display:flex;gap:20px;justify-content:center;align-items:center">
+          <div style="text-align:center">
+            <div style="font-size:65px">🎁🔴</div>
+            <div style="font-family:var(--font-display);font-size:16px;color:#FF6B6B">Kotak Merah</div>
+            <div id="slot-1" style="font-size:32px;min-height:40px">🔒</div>
+          </div>
+          <div style="text-align:center">
+            <div style="font-size:65px">🎁🔵</div>
+            <div style="font-family:var(--font-display);font-size:16px;color:#5BB8F5">Kotak Biru</div>
+            <div id="slot-2" style="font-size:32px;min-height:40px">🔒</div>
+          </div>
+        </div>
+        <div id="toddler-logic-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">Pilih kunci yang sesuai warna kotak!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(2, 1fr)">
+          <button class="toddler-jumbo-btn" id="lbtn-redkey" onclick="toddlerLogicClick(2, 'redkey')">
+            <span class="toddler-jumbo-emoji">🔑🔴</span>
+            <span class="toddler-jumbo-label">Kunci Merah</span>
+          </button>
+          <button class="toddler-jumbo-btn" id="lbtn-bluekey" onclick="toddlerLogicClick(2, 'bluekey')">
+            <span class="toddler-jumbo-emoji">🔑🔵</span>
+            <span class="toddler-jumbo-label">Kunci Biru</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Kunci warna apa yang cocok membuka kotak merah?')}
       </div>
-
-      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(2, 1fr)">
-        <button class="toddler-jumbo-btn" onclick="toddlerLogicClick('fish')">
-          <span class="toddler-jumbo-emoji">🐟</span>
-          <span class="toddler-jumbo-label">Beri Ikan</span>
-        </button>
-        <button class="toddler-jumbo-btn" onclick="toddlerLogicClick('carrot')">
-          <span class="toddler-jumbo-emoji">🥕</span>
-          <span class="toddler-jumbo-label">Beri Wortel</span>
-        </button>
+    `;
+    startAutoHint('#lbtn-redkey');
+  } else {
+    container.innerHTML = `
+      <div class="toddler-card">
+        ${getLevelSwitcherHTML('logic', 3)}
+        <div class="toddler-card-title">💡 Lvl 3: Saklar Lampu BIMO</div>
+        <div class="toddler-card-subtitle">Sebab & Akibat: Tekan saklar lampu untuk menerangi kamar!</div>
+        <div id="light-room-box" style="font-size:80px;background:#2E3A59;padding:20px;border-radius:24px;color:white;text-align:center;width:100%;transition:all 0.4s">
+          😴 🌙 💤
+        </div>
+        <div id="toddler-logic-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">Kamar masih gelap! Tekan saklar 💡!</div>
+        <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(1, 1fr)">
+          <button class="toddler-jumbo-btn" id="lbtn-switch" onclick="toddlerLogicClick(3, 'switch')">
+            <span class="toddler-jumbo-emoji">💡</span>
+            <span class="toddler-jumbo-label">Tekan Saklar Lampu</span>
+          </button>
+        </div>
+        ${getParentPromptCardHTML('Tanyakan pada Si Kecil: Apa yang terjadi begitu saklar lampu kita tekan?')}
       </div>
-    </div>
-  `;
+    `;
+    startAutoHint('#lbtn-switch');
+  }
 }
 
-function toddlerLogicClick(food) {
-  const catSlot = document.getElementById('cat-food-slot');
-  const rabSlot = document.getElementById('rabbit-food-slot');
+function toddlerLogicClick(lvl, action) {
+  clearAutoHint();
   const msg = document.getElementById('toddler-logic-msg');
+  const slot1 = document.getElementById('slot-1');
+  const slot2 = document.getElementById('slot-2');
 
-  if (food === 'fish') {
+  if (lvl === 1) {
+    if (action === 'fish') {
+      playSuccess();
+      if (slot1) slot1.textContent = '🐟 NYAM!';
+      if (msg) msg.textContent = '🐱 Kucing senang sekali diberi Ikan!';
+    } else if (action === 'carrot') {
+      playSuccess();
+      if (slot2) slot2.textContent = '🥕 KRUK!';
+      if (msg) msg.textContent = '🐰 Kelinci senang sekali diberi Wortel!';
+    }
+    if (slot1?.textContent.includes('NYAM') && slot2?.textContent.includes('KRUK')) {
+      playSuccess();
+      if (msg) msg.textContent = '🎉 HEBAT! Semua teman hewan kenyang & gembira!';
+      awardStar('toddler-logic');
+      unlockSticker('toddler-logic-1');
+    }
+  } else if (lvl === 2) {
+    if (action === 'redkey') {
+      playSuccess();
+      if (slot1) slot1.textContent = '🔓 TERBUKA!';
+      if (msg) msg.textContent = '🔑 Kotak Merah berhasil dibuka!';
+    } else if (action === 'bluekey') {
+      playSuccess();
+      if (slot2) slot2.textContent = '🔓 TERBUKA!';
+      if (msg) msg.textContent = '🔑 Kotak Biru berhasil dibuka!';
+    }
+    if (slot1?.textContent.includes('TERBUKA') && slot2?.textContent.includes('TERBUKA')) {
+      playSuccess();
+      if (msg) msg.textContent = '🎉 HORE! Semua kotak gembok terbuka sempurna!';
+      awardStar('toddler-logic');
+      unlockSticker('toddler-logic-2');
+    }
+  } else if (lvl === 3) {
     playSuccess();
-    if (catSlot) catSlot.textContent = '🐟 NYAM!';
-    if (msg) msg.textContent = '🐱 Kucing senang sekali diberi Ikan 🐟!';
-  } else if (food === 'carrot') {
-    playSuccess();
-    if (rabSlot) rabSlot.textContent = '🥕 KRUK!';
-    if (msg) msg.textContent = '🐰 Kelinci senang sekali diberi Wortel 🥕!';
-  }
-
-  if (catSlot?.textContent.includes('NYAM') && rabSlot?.textContent.includes('KRUK')) {
-    playSuccess();
-    if (msg) msg.textContent = '🎉 HEBAT! Semua hewan kenyang &amp; bahagia!';
+    const room = document.getElementById('light-room-box');
+    if (room) {
+      room.style.background = 'linear-gradient(135deg, #FFF8DC, #FFE082)';
+      room.style.color = '#5A3000';
+      room.textContent = '🤖✨ BIMO MENARI! 🎉';
+    }
+    if (msg) msg.textContent = '🎉 TERANG BENDERANG! Lampu menyala & BIMO menari gembira!';
     awardStar('toddler-logic');
+    unlockSticker('toddler-logic-3');
   }
 }
 
@@ -2760,6 +3280,9 @@ window.ch6GenerateRobot = ch6GenerateRobot;
 // Toddler System
 window.setAppMode = setAppMode;
 window.loadToddlerGame = loadToddlerGame;
+window.setToddlerLevel = setToddlerLevel;
+window.openStickerBook = openStickerBook;
+window.closeStickerBook = closeStickerBook;
 window.toddlerSeqClick = toddlerSeqClick;
 window.toddlerDecompClick = toddlerDecompClick;
 window.toddlerPatternClick = toddlerPatternClick;

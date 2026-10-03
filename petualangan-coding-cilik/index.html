@@ -82,29 +82,48 @@
           🏠 Beranda
         </button>
         <h2 class="toddler-title">🐥 Dunia Coding Balita (2-4 Thn)</h2>
-        <div class="map-stars-display">⭐ <span id="toddler-stars">0</span> Bintang</div>
+        <div class="toddler-header-right" style="display:flex;gap:10px;align-items:center">
+          <div class="map-stars-display">⭐ <span id="toddler-stars">0</span> Bintang</div>
+          <button class="sticker-book-btn" onclick="openStickerBook()" aria-label="Buku Stiker BIMO">
+            📖 Buku Stiker (<span id="toddler-sticker-count">0</span>)
+          </button>
+        </div>
       </div>
 
       <div class="toddler-curriculum-tabs">
         <button class="toddler-tab active" onclick="loadToddlerGame('seq')" id="ttab-seq">
-          🚿 1. Mandiin Bebek (Urutan)
+          🚿 1. Urutan (Sequence)
         </button>
         <button class="toddler-tab" onclick="loadToddlerGame('decomp')" id="ttab-decomp">
-          🚗 2. Rakit Mobil (Decomposisi)
+          🚗 2. Dekomposisi
         </button>
         <button class="toddler-tab" onclick="loadToddlerGame('pattern')" id="ttab-pattern">
-          🔴 3. Pola Warna (Pattern)
+          🔴 3. Pola (Pattern)
         </button>
         <button class="toddler-tab" onclick="loadToddlerGame('sort')" id="ttab-sort">
-          🍎 4. Buah &amp; Sayur (Sorting)
+          🍎 4. Pemilahan (Sorting)
         </button>
         <button class="toddler-tab" onclick="loadToddlerGame('logic')" id="ttab-logic">
-          🐱 5. Beri Makan (Logika)
+          🐱 5. Logika (Cause-Effect)
         </button>
       </div>
 
       <div id="toddler-game-area" class="toddler-game-area">
         <!-- Interactive Toddler Minigame Injected Here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: BUKU STIKER DIGITAL BIMO -->
+  <div id="modal-sticker-book" class="modal-overlay hidden" onclick="if(event.target===this)closeStickerBook()">
+    <div class="modal-card sticker-modal-card">
+      <div class="modal-header">
+        <h3>📖 Buku Stiker Digital BIMO</h3>
+        <button class="close-modal-btn" onclick="closeStickerBook()">✖</button>
+      </div>
+      <p class="sticker-subtext">Kumpulkan 15 stiker komputasi ajaib dari setiap level balita! 🌟</p>
+      <div id="sticker-grid" class="sticker-grid">
+        <!-- Sticker items injected by JS -->
       </div>
     </div>
   </div>
