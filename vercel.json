@@ -1,0 +1,8 @@
+{
+  "version": 2,
+  "cleanUrls": true,
+  "rewrites": [
+    { "source": "/", "destination": "/petualangan-coding-cilik/index.html" },
+    { "source": "/(.*)", "destination": "/petualangan-coding-cilik/$1" }
+  ]
+}
