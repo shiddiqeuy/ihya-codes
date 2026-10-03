@@ -153,17 +153,30 @@ document.getElementById('child-name-input').addEventListener('keydown', (e) => {
   if (e.key === 'Enter') startAdventure();
 });
 
+STATE.appMode = 'kids'; // 'kids' or 'toddler'
+
+function setAppMode(mode) {
+  playClick();
+  STATE.appMode = mode;
+  document.getElementById('btn-mode-kids')?.classList.toggle('active', mode === 'kids');
+  document.getElementById('btn-mode-toddler')?.classList.toggle('active', mode === 'toddler');
+}
+
 function startAdventure() {
   const input = document.getElementById('child-name-input');
-  const name = (input.value || '').trim();
-  if (!name) {
-    showBugMonster('Siapa nama kamu? Ketik dulu ya! 😊');
-    return;
-  }
+  const name = (input.value || '').trim() || 'Si Kecil';
   STATE.childName = name;
   saveProgress();
   playSuccess();
-  goToMap();
+
+  if (STATE.appMode === 'toddler') {
+    showScreen('screen-toddler');
+    const starEl = document.getElementById('toddler-stars');
+    if (starEl) starEl.textContent = STATE.totalStars;
+    loadToddlerGame('seq');
+  } else {
+    goToMap();
+  }
 }
 
 function restartAdventure() {
@@ -177,6 +190,344 @@ function restartAdventure() {
   });
   document.getElementById('child-name-input').value = '';
   showScreen('screen-welcome');
+}
+
+// ============================================================
+// TODDLER COMPUTING CURRICULUM GAMES (2-4 Years)
+// ============================================================
+let toddlerState = {
+  activeTab: 'seq',
+  seqStep: 0,
+  decompParts: [],
+  patternAnswer: null,
+  sortScore: 0
+};
+
+function loadToddlerGame(gameType) {
+  playClick();
+  toddlerState.activeTab = gameType;
+
+  ['seq', 'decomp', 'pattern', 'sort', 'logic'].forEach(t => {
+    document.getElementById(`ttab-${t}`)?.classList.toggle('active', t === gameType);
+  });
+
+  const container = document.getElementById('toddler-game-area');
+  if (!container) return;
+
+  switch (gameType) {
+    case 'seq':
+      renderToddlerSeqGame(container);
+      break;
+    case 'decomp':
+      renderToddlerDecompGame(container);
+      break;
+    case 'pattern':
+      renderToddlerPatternGame(container);
+      break;
+    case 'sort':
+      renderToddlerSortGame(container);
+      break;
+    case 'logic':
+      renderToddlerLogicGame(container);
+      break;
+  }
+}
+
+// 1. SEQUENCE GAME: Mandiin Bebek Kwek Kwek 🐥
+function renderToddlerSeqGame(container) {
+  toddlerState.seqStep = 0;
+  container.innerHTML = `
+    <div class="toddler-card">
+      <div class="toddler-card-title">🚿 Mandiin Bebek Kwek Kwek</div>
+      <div class="toddler-card-subtitle">Urutan Algoritma: Sabun 🧼 ➔ Bilas 💧 ➔ Handuk 🧺</div>
+
+      <div id="toddler-duck-box" style="font-size:90px;padding:20px;border-radius:50%;background:#FFF8DC;border:4px solid #FFD85C;box-shadow:0 8px 24px rgba(255,216,92,0.3)">
+        🐥
+      </div>
+
+      <div id="toddler-seq-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">
+        Bebeknya lagi kotor! Sentuh langkah ke-1!
+      </div>
+
+      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+        <button class="toddler-jumbo-btn" onclick="toddlerSeqClick(1)">
+          <span class="toddler-jumbo-emoji">🧼</span>
+          <span class="toddler-jumbo-label">1. Sabun</span>
+        </button>
+        <button class="toddler-jumbo-btn" onclick="toddlerSeqClick(2)">
+          <span class="toddler-jumbo-emoji">🚿</span>
+          <span class="toddler-jumbo-label">2. Bilas Air</span>
+        </button>
+        <button class="toddler-jumbo-btn" onclick="toddlerSeqClick(3)">
+          <span class="toddler-jumbo-emoji">🧺</span>
+          <span class="toddler-jumbo-label">3. Handuk</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function toddlerSeqClick(step) {
+  const msg = document.getElementById('toddler-seq-msg');
+  const duck = document.getElementById('toddler-duck-box');
+
+  if (step === toddlerState.seqStep + 1) {
+    toddlerState.seqStep++;
+    playPop();
+
+    if (toddlerState.seqStep === 1) {
+      if (duck) duck.textContent = '🧼🐥';
+      if (msg) msg.textContent = 'Bebek sudah disabun! Sekarang bilas air! 🚿';
+    } else if (toddlerState.seqStep === 2) {
+      if (duck) duck.textContent = '💧🐥💧';
+      if (msg) msg.textContent = 'Bebek sudah bersih! Sekarang keringkan dengan handuk! 🧺';
+    } else if (toddlerState.seqStep === 3) {
+      playSuccess();
+      if (duck) duck.textContent = '✨🐥✨';
+      if (msg) msg.textContent = '🎉 HORE! Bebeknya wangi & bersih sekali! Urutan algoritma sempurna!';
+      awardStar('toddler-seq');
+    }
+  } else {
+    playError();
+    if (msg) msg.textContent = '🤪 Ops! Ikuti urutannya: 1. Sabun 🧼 ➔ 2. Bilas 🚿 ➔ 3. Handuk 🧺!';
+  }
+}
+
+// 2. DECOMPOSITION GAME: Rakit Mobil Balap 🚗
+function renderToddlerDecompGame(container) {
+  toddlerState.decompParts = [];
+  container.innerHTML = `
+    <div class="toddler-card">
+      <div class="toddler-card-title">🚗 Rakit Mobil Balap</div>
+      <div class="toddler-card-subtitle">Decomposisi: Gabungkan bagian roda, body, &amp; lampu!</div>
+
+      <div id="toddler-car-box" style="font-size:80px;min-height:110px;display:flex;align-items:center;justify-content:center">
+        ❓
+      </div>
+
+      <div id="toddler-decomp-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">
+        Sentuh semua bagian untuk merakit mobil!
+      </div>
+
+      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(3, 1fr)">
+        <button class="toddler-jumbo-btn" id="dbtn-wheel" onclick="toddlerDecompClick('wheel', '🛞 Roda')">
+          <span class="toddler-jumbo-emoji">🛞</span>
+          <span class="toddler-jumbo-label">Roda</span>
+        </button>
+        <button class="toddler-jumbo-btn" id="dbtn-body" onclick="toddlerDecompClick('body', '🏎️ Body')">
+          <span class="toddler-jumbo-emoji">🏎️</span>
+          <span class="toddler-jumbo-label">Body</span>
+        </button>
+        <button class="toddler-jumbo-btn" id="dbtn-light" onclick="toddlerDecompClick('light', '💡 Lampu')">
+          <span class="toddler-jumbo-emoji">💡</span>
+          <span class="toddler-jumbo-label">Lampu</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function toddlerDecompClick(part, label) {
+  if (!toddlerState.decompParts.includes(part)) {
+    toddlerState.decompParts.push(part);
+    playPop();
+
+    const carBox = document.getElementById('toddler-car-box');
+    const msg = document.getElementById('toddler-decomp-msg');
+    const btn = document.getElementById(`dbtn-${part}`);
+
+    if (btn) btn.style.opacity = '0.4';
+
+    if (toddlerState.decompParts.length === 1) {
+      if (carBox) carBox.textContent = '🛞';
+      if (msg) msg.textContent = `${label} terpasang! Pasang bagian lainnya!`;
+    } else if (toddlerState.decompParts.length === 2) {
+      if (carBox) carBox.textContent = '🏎️🛞';
+      if (msg) msg.textContent = `${label} terpasang! Tinggal 1 bagian lagi!`;
+    } else if (toddlerState.decompParts.length === 3) {
+      playSuccess();
+      if (carBox) {
+        carBox.textContent = '🏎️💨 VROOOM!';
+        carBox.style.animation = 'result-pop 0.5s var(--ease-bounce)';
+      }
+      if (msg) msg.textContent = '🎉 VROOOM! Mobil balap berhasil dirakit sempurna!';
+      awardStar('toddler-decomp');
+    }
+  }
+}
+
+// 3. PATTERN RECOGNITION GAME: Kalung Pelangi 📿
+function renderToddlerPatternGame(container) {
+  container.innerHTML = `
+    <div class="toddler-card">
+      <div class="toddler-card-title">📿 Kalung Pelangi</div>
+      <div class="toddler-card-subtitle">Pengenalan Pola: Manic warna apa selanjutnya?</div>
+
+      <div style="font-size:44px;letter-spacing:10px;background:#FFF3E0;padding:16px 28px;border-radius:20px;border:3px solid #FF8C42">
+        🔴 🔵 🔴 <span id="toddler-pattern-target" style="border:3px dashed #FF8C42;padding:0 8px;border-radius:12px">❓</span>
+      </div>
+
+      <div id="toddler-pattern-msg" style="font-family:var(--font-display);font-size:22px;color:#5A3000;text-align:center">
+        Pilih warna manic berikutnya!
+      </div>
+
+      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(2, 1fr)">
+        <button class="toddler-jumbo-btn" onclick="toddlerPatternClick('blue')">
+          <span class="toddler-jumbo-emoji">🔵</span>
+          <span class="toddler-jumbo-label">Manic Biru</span>
+        </button>
+        <button class="toddler-jumbo-btn" onclick="toddlerPatternClick('red')">
+          <span class="toddler-jumbo-emoji">🔴</span>
+          <span class="toddler-jumbo-label">Manic Merah</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function toddlerPatternClick(color) {
+  const target = document.getElementById('toddler-pattern-target');
+  const msg = document.getElementById('toddler-pattern-msg');
+
+  if (color === 'blue') {
+    playSuccess();
+    if (target) target.textContent = '🔵';
+    if (msg) msg.textContent = '🎉 HEBAT! Polanya: Merah 🔴 ➔ Biru 🔵 ➔ Merah 🔴 ➔ Biru 🔵!';
+    awardStar('toddler-pattern');
+  } else {
+    playError();
+    if (msg) msg.textContent = '🤪 Ops! Perhatikan polanya: Merah, Biru, Merah... berikutnya Biru 🔵!';
+  }
+}
+
+// 4. SORTING GAME: Pisahkan Buah & Sayur 🍎🥦
+function renderToddlerSortGame(container) {
+  container.innerHTML = `
+    <div class="toddler-card">
+      <div class="toddler-card-title">🍎 Pisahkan Buah &amp; Sayur</div>
+      <div class="toddler-card-subtitle">Pengelompokan Data: Mana Buah dan mana Sayur?</div>
+
+      <div style="display:flex;gap:16px;width:100%;justify-content:center">
+        <div style="flex:1;background:#FFEAEA;border:3px solid #FF6B6B;border-radius:20px;padding:16px;text-align:center">
+          <div style="font-size:28px">🧺🍎</div>
+          <div style="font-family:var(--font-display);font-size:16px;color:#8B0000">Kotak Buah</div>
+          <div id="box-fruit-items" style="font-size:32px;margin-top:8px;min-height:40px"></div>
+        </div>
+        <div style="flex:1;background:#E8F9EF;border:3px solid #5CC86A;border-radius:20px;padding:16px;text-align:center">
+          <div style="font-size:28px">🧺🥦</div>
+          <div style="font-family:var(--font-display);font-size:16px;color:#0D5020">Kotak Sayur</div>
+          <div id="box-veg-items" style="font-size:32px;margin-top:8px;min-height:40px"></div>
+        </div>
+      </div>
+
+      <div id="toddler-sort-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">
+        Masukkan Makanan ke Kotak yang Tepat!
+      </div>
+
+      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(4, 1fr)" id="toddler-sort-pool">
+        <button class="toddler-jumbo-btn" onclick="toddlerSortClick('fruit', '🍎', this)">
+          <span class="toddler-jumbo-emoji">🍎</span>
+          <span class="toddler-jumbo-label">Apel</span>
+        </button>
+        <button class="toddler-jumbo-btn" onclick="toddlerSortClick('veg', '🥦', this)">
+          <span class="toddler-jumbo-emoji">🥦</span>
+          <span class="toddler-jumbo-label">Brokoli</span>
+        </button>
+        <button class="toddler-jumbo-btn" onclick="toddlerSortClick('fruit', '🍌', this)">
+          <span class="toddler-jumbo-emoji">🍌</span>
+          <span class="toddler-jumbo-label">Pisang</span>
+        </button>
+        <button class="toddler-jumbo-btn" onclick="toddlerSortClick('veg', '🥕', this)">
+          <span class="toddler-jumbo-emoji">🥕</span>
+          <span class="toddler-jumbo-label">Wortel</span>
+        </button>
+      </div>
+    </div>
+  `;
+  toddlerState.sortScore = 0;
+}
+
+function toddlerSortClick(type, emoji, btn) {
+  playPop();
+  btn.style.display = 'none';
+  toddlerState.sortScore++;
+
+  if (type === 'fruit') {
+    const fBox = document.getElementById('box-fruit-items');
+    if (fBox) fBox.textContent += emoji + ' ';
+  } else {
+    const vBox = document.getElementById('box-veg-items');
+    if (vBox) vBox.textContent += emoji + ' ';
+  }
+
+  const msg = document.getElementById('toddler-sort-msg');
+  if (toddlerState.sortScore >= 4) {
+    playSuccess();
+    if (msg) msg.textContent = '🎉 PINTAR! Semua buah & sayur sudah dikelompokkan dengan benar!';
+    awardStar('toddler-sort');
+  } else {
+    if (msg) msg.textContent = `Bagus! ${emoji} sudah dimasukkan! Lanjutkan!`;
+  }
+}
+
+// 5. LOGIC GAME: Beri Makan Hewan 🐱🐰
+function renderToddlerLogicGame(container) {
+  container.innerHTML = `
+    <div class="toddler-card">
+      <div class="toddler-card-title">🐱 Beri Makan Teman Hewan</div>
+      <div class="toddler-card-subtitle">Logika Suka/Tidak Suka: Kucing suka Ikan 🐟, Kelinci suka Wortel 🥕</div>
+
+      <div style="display:flex;gap:20px;justify-content:center;align-items:center">
+        <div style="text-align:center">
+          <div style="font-size:70px">🐱</div>
+          <div style="font-family:var(--font-display);font-size:18px">Kucing</div>
+          <div id="cat-food-slot" style="font-size:36px;min-height:44px">❓</div>
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:70px">🐰</div>
+          <div style="font-family:var(--font-display);font-size:18px">Kelinci</div>
+          <div id="rabbit-food-slot" style="font-size:36px;min-height:44px">❓</div>
+        </div>
+      </div>
+
+      <div id="toddler-logic-msg" style="font-family:var(--font-display);font-size:20px;color:#5A3000;text-align:center">
+        Sentuh makanan untuk diberikan kepada hewan yang tepat!
+      </div>
+
+      <div class="toddler-jumbo-grid" style="grid-template-columns:repeat(2, 1fr)">
+        <button class="toddler-jumbo-btn" onclick="toddlerLogicClick('fish')">
+          <span class="toddler-jumbo-emoji">🐟</span>
+          <span class="toddler-jumbo-label">Beri Ikan</span>
+        </button>
+        <button class="toddler-jumbo-btn" onclick="toddlerLogicClick('carrot')">
+          <span class="toddler-jumbo-emoji">🥕</span>
+          <span class="toddler-jumbo-label">Beri Wortel</span>
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function toddlerLogicClick(food) {
+  const catSlot = document.getElementById('cat-food-slot');
+  const rabSlot = document.getElementById('rabbit-food-slot');
+  const msg = document.getElementById('toddler-logic-msg');
+
+  if (food === 'fish') {
+    playSuccess();
+    if (catSlot) catSlot.textContent = '🐟 NYAM!';
+    if (msg) msg.textContent = '🐱 Kucing senang sekali diberi Ikan 🐟!';
+  } else if (food === 'carrot') {
+    playSuccess();
+    if (rabSlot) rabSlot.textContent = '🥕 KRUK!';
+    if (msg) msg.textContent = '🐰 Kelinci senang sekali diberi Wortel 🥕!';
+  }
+
+  if (catSlot?.textContent.includes('NYAM') && rabSlot?.textContent.includes('KRUK')) {
+    playSuccess();
+    if (msg) msg.textContent = '🎉 HEBAT! Semua hewan kenyang &amp; bahagia!';
+    awardStar('toddler-logic');
+  }
 }
 
 // ============================================================
@@ -2405,6 +2756,15 @@ window.ch6SetAnimal = ch6SetAnimal;
 window.ch6AdjJumps = ch6AdjJumps;
 window.ch6UpdatePreview = ch6UpdatePreview;
 window.ch6GenerateRobot = ch6GenerateRobot;
+
+// Toddler System
+window.setAppMode = setAppMode;
+window.loadToddlerGame = loadToddlerGame;
+window.toddlerSeqClick = toddlerSeqClick;
+window.toddlerDecompClick = toddlerDecompClick;
+window.toddlerPatternClick = toddlerPatternClick;
+window.toddlerSortClick = toddlerSortClick;
+window.toddlerLogicClick = toddlerLogicClick;
 
 // Lego & Fill-in system
 window.initFillInCodeBlock = initFillInCodeBlock;

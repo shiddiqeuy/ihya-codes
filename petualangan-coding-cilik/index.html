@@ -55,11 +55,56 @@
           <div class="name-input-row">
             <input type="text" id="child-name-input" placeholder="Ketik namamu di sini..." maxlength="20" autocomplete="off" aria-label="Nama anak" />
           </div>
-          <button id="btn-start" class="cta-primary pulse-btn" onclick="startAdventure()">
+
+          <div class="mode-selector-row" style="display:flex;gap:10px;width:100%;margin-top:12px">
+            <button id="btn-mode-kids" class="mode-select-btn active" onclick="setAppMode('kids')">
+              🚀 Mode Anak (5-7 Thn)
+            </button>
+            <button id="btn-mode-toddler" class="mode-select-btn" onclick="setAppMode('toddler')">
+              🐥 Mode Balita (2-4 Thn)
+            </button>
+          </div>
+
+          <button id="btn-start" class="cta-primary pulse-btn" style="margin-top:14px" onclick="startAdventure()">
             <span class="btn-icon">🚀</span> Mulai Petualangan!
           </button>
-          <p class="parent-note">💛 <strong>Ayah &amp; Bunda:</strong> Bantu Si Kecil mengetik namanya, lalu klik tombol di atas bersama-sama!</p>
+          <p class="parent-note">💛 <strong>Ayah &amp; Bunda:</strong> Pilih mode usia Si Kecil lalu klik tombol di atas!</p>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCREEN: TODDLER COMPUTING WORLD (2-4 Years) -->
+  <div id="screen-toddler" class="screen">
+    <div class="toddler-world">
+      <div class="toddler-header">
+        <button class="back-btn" onclick="showScreen('screen-welcome')" aria-label="Kembali">
+          🏠 Beranda
+        </button>
+        <h2 class="toddler-title">🐥 Dunia Coding Balita (2-4 Thn)</h2>
+        <div class="map-stars-display">⭐ <span id="toddler-stars">0</span> Bintang</div>
+      </div>
+
+      <div class="toddler-curriculum-tabs">
+        <button class="toddler-tab active" onclick="loadToddlerGame('seq')" id="ttab-seq">
+          🚿 1. Mandiin Bebek (Urutan)
+        </button>
+        <button class="toddler-tab" onclick="loadToddlerGame('decomp')" id="ttab-decomp">
+          🚗 2. Rakit Mobil (Decomposisi)
+        </button>
+        <button class="toddler-tab" onclick="loadToddlerGame('pattern')" id="ttab-pattern">
+          🔴 3. Pola Warna (Pattern)
+        </button>
+        <button class="toddler-tab" onclick="loadToddlerGame('sort')" id="ttab-sort">
+          🍎 4. Buah &amp; Sayur (Sorting)
+        </button>
+        <button class="toddler-tab" onclick="loadToddlerGame('logic')" id="ttab-logic">
+          🐱 5. Beri Makan (Logika)
+        </button>
+      </div>
+
+      <div id="toddler-game-area" class="toddler-game-area">
+        <!-- Interactive Toddler Minigame Injected Here -->
       </div>
     </div>
   </div>

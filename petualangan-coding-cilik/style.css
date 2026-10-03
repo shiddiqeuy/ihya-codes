@@ -2740,4 +2740,175 @@ button, input, select, [role="button"] {
   color: #8B0000;
 }
 
+/* === TODDLER COMPUTING MODE (2-4 Years) === */
+.mode-select-btn {
+  flex: 1;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  color: white;
+  font-family: var(--font-body);
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s var(--ease-bounce);
+  backdrop-filter: blur(4px);
+}
+
+.mode-select-btn.active {
+  background: var(--sun-yellow);
+  color: #5A3000;
+  border-color: #FFA800;
+  box-shadow: 0 4px 12px rgba(255, 216, 92, 0.4);
+  transform: scale(1.03);
+}
+
+.toddler-world {
+  flex: 1;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF5E4 0%, #FFE3E3 50%, #E3F2FD 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px;
+  gap: 16px;
+}
+
+.toddler-header {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: white;
+  padding: 14px 20px;
+  border-radius: 24px;
+  box-shadow: 0 6px 20px rgba(0,0,0,0.06);
+}
+
+.toddler-title {
+  font-family: var(--font-display);
+  font-size: 20px;
+  color: #5A3000;
+  text-align: center;
+}
+
+.toddler-curriculum-tabs {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  width: 100%;
+  max-width: 720px;
+  padding: 6px 2px;
+  scrollbar-width: none;
+}
+.toddler-curriculum-tabs::-webkit-scrollbar { display: none; }
+
+.toddler-tab {
+  white-space: nowrap;
+  background: white;
+  border: 2.5px solid #E0E0E0;
+  border-radius: 20px;
+  padding: 12px 18px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-dark);
+  cursor: pointer;
+  transition: all 0.2s var(--ease-bounce);
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.05);
+}
+
+.toddler-tab:hover {
+  transform: translateY(-2px);
+  border-color: #FF8C42;
+}
+
+.toddler-tab.active {
+  background: linear-gradient(135deg, #FF8C42, #FF6000);
+  color: white;
+  border-color: #FF6000;
+  box-shadow: 0 6px 16px rgba(255, 112, 32, 0.35);
+  transform: scale(1.04);
+}
+
+.toddler-game-area {
+  width: 100%;
+  max-width: 680px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.toddler-card {
+  background: white;
+  border-radius: 28px;
+  padding: 28px 24px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+  animation: result-pop 0.4s var(--ease-bounce);
+}
+
+.toddler-card-title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  color: #2D2D2D;
+  text-align: center;
+}
+
+.toddler-card-subtitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: #666;
+  text-align: center;
+  margin-top: -12px;
+}
+
+.toddler-jumbo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 16px;
+  width: 100%;
+}
+
+.toddler-jumbo-btn {
+  background: #FFFBF5;
+  border: 3.5px solid #FFD85C;
+  border-radius: 24px;
+  padding: 20px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.25s var(--ease-bounce);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+  min-height: 110px;
+}
+
+.toddler-jumbo-btn:hover {
+  transform: translateY(-4px) scale(1.05);
+  border-color: #FF8C42;
+  box-shadow: 0 10px 24px rgba(255, 140, 66, 0.25);
+}
+
+.toddler-jumbo-emoji {
+  font-size: 48px;
+}
+
+.toddler-jumbo-label {
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: #2D2D2D;
+}
+
+
 
